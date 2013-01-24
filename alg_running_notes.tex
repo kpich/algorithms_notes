@@ -8,9 +8,34 @@
 \usepackage{amsmath,amssymb}
 
 
+\newcommand{\inv}{^{-1}}
+
+
 \begin{document}
 
 \maketitle
+
+\section{Preamble: Useful identities}
+
+\begin{itemize}
+
+	\item
+	For large $n$, we have
+	\begin{align}
+		\left(
+			1 + \frac{1}{n}
+		\right)
+		&\approx 
+		e
+		\\
+		\left(
+			1 - \frac{1}{n}
+		\right)
+		&\approx 
+		e\inv
+	\end{align}
+
+\end{itemize}
 
 \section{1/22/2013: Chernoff Bounds, the Tails of the Binomial}
 
@@ -205,21 +230,15 @@ HOw can we use the prvious result to convince ourselves of this?
 
 
 
-\section{1/24/2013}
+\section{1/24/2013: Hashing}
 
 Let's think about Randomized quicksort.
-We already showed that randomized quicksort has Expected $O(n\log n)$ behavior.
-(that is, there are no ``bad inputs'' for it).
-We'll see that Randomized quicksort has $O(n\log n)$ runtime with high
+We know that randomized quicksort has expected $O(n\log n)$ behavior.
+(that is, there are no ``bad inputs'' for it in expectation).
+Note also that Randomized quicksort has $O(n\log n)$ runtime with high
 probability (that is, we'll give a nice bound on the probability of 
 the runtime being asymptotically higher).
 
-Consider the process where we start with a number $n$.
-We flip a coin. 
-If we get heads, we set the number to something uniformly drawn from
-$(0, 3n/4)$ (floored).
-If we get tails, then we set the value uniformly to between $0$ and $n - 1$.
-So at each stage, the value gets smaller (by at least one).
 
 We can think about quicksort from the perspective of a particular fixed
 key, call it $x$.
@@ -233,28 +252,44 @@ probability will be $1/n^c$ for arbitrarily large $c$.
 $n$ keys is $O(n\log n)$ WHP.)
 
 \textbf{Proof of Claim:}
-We have a ``herd'' of keys, and select one to be the pivot.
+We have a ``herd'' of keys, initially of size $n$, and select one to be the pivot.
 The pivot is remarkably lucky---it gets 0 charge.
 If $x$ is chosen as the pivot, that's nice.
 If, on the other hand, $x$ is not chosen as pivot, then it will get charge 1.
 Then the keys will be partitioned into two ``herds'', one of which will
 never again be compared with $x$.
 
-Coming back to the process defined above: Picking a pivot at random,
-there is a $0.5$ probability that the pivot sits in between $n/4$ and $3n/4$ (it sits in the middle half).
+Consider the process where we start with a positive integer $n$.
+We flip a coin. 
+If we get heads, we set the number to an integer uniformly drawn from
+$[0, 3n/4]$ (floored).
+If we get tails, then we set the value uniformly to between $0$ and $n - 1$.
+So at each stage, the value gets smaller (by at least one).
+The process stops when the number gets to 0.
+
+We use this process as follows. 
+Picking a pivot at random,
+there is a $0.5$ probability that the pivot sits in between $n/4$ and $3n/4$ in the sorted list (it sits in the middle half).
 There's also a $.5$ chance it's not in the middle.
-The number in the process is just the size of the ``heard'' $x$ is in.
+The number in the process is just the size of the ``herd'' $x$ is in.
 
 If we get a good pivot, then the herd value is at most $3n/4$ (imagine
-getting the rightmost pivot in the middle half).
+getting the rightmost pivot in the middle half, say).
 This is like flipping a head.
 In the worst case (flipping a tail), then the size of the herd decreases by 1.
 
 The process can't involve more than some constant times $\log n$ heads:
 each head decreases the herd size by at least $3/4$.
+(Prove this?)
+%The maximum number of heads needed to get to 1 is $i$ in
+%$$
+%\left(
+%\frac{3}{4}
+%\right)
+%^i n = 1
+%$$
 So $x$ sits there and hopes for good pivot choices from its perspective.
 (This is basically the end of the proof.)
-
 
 We don't have a binomial variable, but we can relate it to this
 simpler process defined above, and use a Chernoff bound on that.
@@ -298,8 +333,8 @@ This relates directly to the bin/bucket problems we discussed previously.
 \textbf{Claim:}
 The average time for a search is $O(1)$, assuming $n$ buckets (with $n$ keys).
 
-No proof; see book.
- The vast majority of buckets will get very few elements.
+No proof (prove this?).
+ Basically, the vast majority of buckets will get very few elements.
 
 On the other hand, what's the expected max search time?
 That is, has $n$ keys into $n$ buckets with our idealized hash.
