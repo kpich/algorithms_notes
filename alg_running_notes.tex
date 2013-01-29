@@ -9,6 +9,7 @@
 
 
 \newcommand{\inv}{^{-1}}
+\newcommand{\Z}{\mathbb{Z}}
 
 
 \begin{document}
@@ -532,15 +533,238 @@ Pr(h(x) = i\,\,\&\,\, h(y) = j)
 $$
 with $B$ the number of buckets.
 
-This si sufficient because, in our analysis, we were only interested in
+This is sufficient because, in our analysis, we were only interested in
 pairwise indicator variables. 
 We were never interested in any more complicated conditions.
 
 
 
+We're interested in designing a family of functions mapping from
+$(10 \log_2 n)$-bit strings to $(\log_2 n)$-bit strings.
+
+We saw taht for analysis, we didn't need full independence, but just
+pairwise independence.
+This is because our analysis cared only about the number of pairwise collisions,
+which we can write as a sum of indicator variables $X_{ij}$, which is
+1 iff $i$ and $j$ collide.
+Recall that $P\{X_{ij} = 1\} = 1/p$, with $p$ the number of buckets.
+
+In our analysis, in fact, it's fine to have approximate pairwise independence;
+that can give us OK bounds.
+So we want a function $h$ such that, for two distinct keys $x\neq y$ (and any $i,j$, not necessarily distinct),
+then
+$$
+Pr\{
+	h(x) = i \,\wedge\,
+	h(y) = j
+\}
+=
+O\left(
+	\frac{1}{n^2}
+\right).
+$$
+IN the above, $i$ and $j$ are bins; $x$ and $y$ are keys.
+
+First, we'll pick a prime $p$ a bit bigger than $n^{10}$ (why?).
+The prime number theorem tells us that about, picking things around the
+neighborhood, we only have to try a logarithmic number of keys (in $n^{10}$)
+in expectation before finding a prime.
+(There is also a theorem indicating that there is definitely a prime
+between $k$ and $2k$; in particular, this is $n^{10}$ and $2n^{10}$).
+
+So let's hash from $\Z_p$ to $\Z_n$.
+Consider
+$$
+h(x) = \left[ ax + b \mod p\right]
+\mod n
+$$
+with $a$ and $b$ chosen from $\Z_p$.
+(Note that we have $a$ and $b$ because we want it to be the case that,
+under our analysis, there will be no ``bad input''---if we have an adversary
+picking keys, they won't be able to pick bad keys if they know what the
+family looks like; if there were no $a$ and $b$, then they would be
+able to do so. In other words, our family needs to have more than one
+hash function in it if we want to argue a small number of expected
+collisions.)
+This isn't quite uniform between $0$ and $n-1$, but we're quite close.
+The inner hash
+$$
+ax + b \mod p
+$$
+is, I think, actually uniform over $\Z_p$ (proof?).
+The outer hash, then, will be approximately uniform over $\Z_m$ (proof?).
+This satisfies the condition for approximate pairwise independence
+that we defined earlier.
+
+So at the top level, we pick a $p$, then we repeatedly choose $a$ and $b$; for each
+$a$ and $b$, we check how the particular hash function works.
+We repeatedly do that until we get a good $a$ and $b$; we store them,
+as they fully parametrize a hash function.
+We do this for each primary hash function and each secondary hash function.
 
 
 
+
+
+\section{1/29/2013: Dynamic Programming}
+
+\subsection{Examples}
+
+\subsubsection{contiguous subarrays of booleans}
+Suppose we're given an $n\times n$ boolean array $A$.
+We want to find the side-length of a largest all-true contiguous square
+subarray of $A$.
+So if there's a $3\times 3$ subarray of Trues, then the desired answer
+is at least 3.
+
+Now, certainly this problem is solvable in polynomial time.
+For each side length $k$, there are only $n^2$ different places where the
+$k\times k$ subarrays top-left corner could be; we could
+just exhaustively check this for all $k$ and compute the answer.
+
+We can get a better polynomial bound using Dynamic Programming.
+What DP does is, instead of solving a single problem instance, find a bunch
+of problem instances to solve, and do so in such a way that the larger
+problem instances can use the computations performed for the smaller
+instances.
+
+So let $a_{ij}$ be the size of the largest all-true contiguous
+square subarray with lower right corner
+at location $(i,j)$.
+This is a family of $n^2$ subproblems.
+Our answer to the original problem is just
+$$
+\max_{i,j} a_{ij}.
+$$
+
+Now, what is a good order to solve these $n^2$ subproblems?
+What we'd like is that, whenever we get to a particular problem
+in this ordering, we can very easily solve it in terms of the instances
+we've already solved.
+In other words, we want to be able to write a suitable reccurrence for
+the $a_{ij}$'s.
+Thinking about it, it's not too tough to see the following works:
+\begin{equation}
+a_{ij} = 
+\left\{
+\begin{array}{ll}
+0 & \textrm{if } (i,j) \textrm{ entry is F}
+\\
+1 + \min(a_{i-1,j}, a_{i,j-1}, a_{i-1,j-1}) & \textrm{otherwise}
+\end{array}
+\right.
+\end{equation}
+So filling in left-to-right row by row (or top-down column by column) should
+work.
+The important thing is that, when we get to a position, 
+the spot above it, to the left of it, above and to the left of it, are
+filled in.
+(A small note is that we need to interpret out-of-bounds indices as 0 above.)
+
+So the above algorithm runs in $O(n^2)$ time, which is a nice,
+much-faster polynomial-time algorithm than the brute-force poly-time algorithm.
+
+\subsubsection{Rod-cutting problem}
+
+Commonly, Dynamic programming yields polynomial-time algorithms for
+problems where the brute-force technique is exponential.
+For example, suppose we have a rod of length $n$ inches ($n\in \Z^+$).
+We can cut it into any integer-length pieces (such that they sum to $n$).
+For every $i$, we have a price $p_i$ that we can sell a rod of length $i$
+for.
+The problem, then, is to cut up the rod into pieces in such a way that
+we maximize the total prices for the pieces.
+
+When we cut the number up, we get a multiset of positive integers; in
+the language of number theory, this is a \emph{partition} of $n$.
+If the number of partitions of $n$ were sufficiently slow, we could just
+generate them and calculate their value; however, the number of partitions
+grows superpolynomially.
+Consider the numbers
+$$
+1,2,\ldots, \lceil 2\sqrt n \rceil - 1,
+\lceil 2\sqrt n \rceil.
+$$
+Pair up the first two numbers and the last two numbers:
+$$
+1,2,\ldots, \lceil 2\sqrt n \rceil - 1,
+\lceil 2\sqrt n \rceil.
+$$
+For the first $\lceil 2\sqrt n\rceil + 1$ elements, you can either
+partition them into the two outermost pieces or the next
+innermost pieces.
+
+We repeat for $3,4$ and the next two inner numbers on the right.
+For each of these, we eat up $\sqrt n$ of the rod.
+We'll have $\sqrt n / 2$ such decisions for what to do with the
+pieces of length $\sqrt n$, and we'll have about
+$$
+2^{\Omega(\sqrt n)}
+$$
+ways to partition the rods up.
+(In fact, it ends up being $2^{O(\sqrt n)}$ too.)
+So the number of partitions of $n$ is pretty clearly superexponential.
+
+We can solve this, however, with a simple one-dimensional dynamic program.
+For each $i$, let $v_i$ be the maximum value of a rod of
+length $i$.
+We will use the following recurrence for $v_i$ in terms of the smaller $v_j$'s.
+For a partition of $i$, there will be some length $\ell$ of the last
+partition.
+So
+\begin{align*}
+v_0 &= 0 \\
+v_i &=
+\max_{1\leq \ell \leq i}
+v_{i-\ell} + p_\ell
+\end{align*}
+We get $O(n^2)$ time of this: we have $n$ subproblems, but the $i$th
+subproblem takes $O(i)$ time to solve (summing over these subproblems
+uses the familiar $\sum_i i^2 = O(n^2)$ identity).
+
+
+\subsubsection{Longest Common Subsequence}
+
+We have two sequences $X,Y$ of symbols over some finite alphabet.
+Writing $X$ as
+$$
+X = x_1 x_2 \dots x_n,
+$$
+we define a subsequence of $X$ as a subset of entries $x_i$, concatenated
+in order.
+We want to find the largest integer $k$ such that there are
+subsequences in $X$ and $Y$ of length $k$ such that both subsequences are
+the same.
+
+The brute-force approach here is exponential: it's pretty easy to see (there are $2^n$ subsets of $n$ sets).
+
+We use the familiar two-dimensional DP solution.
+Let $X_i$ denote the length-$i$ prefix of $X$:
+$$
+X_i = x_1\dots x_i,
+$$
+and similarly with $Y_j$.
+Now, let
+$a_{ij}$ be the length of the LCS of $X_i$ and $Y_j$.
+
+Supposing $|X| = m$ and $|Y| = n$, we have $m\times n$ subproblems.
+The final answer to the question is $a_{mn}$.
+So we have the base cases
+\begin{align*}
+a_{0j} &= 0 \\
+a_{i,0} &= 0
+\end{align*}
+for all $i,j$.
+For the recursive case, we have
+\begin{equation}
+a_{ij} =
+\left\{
+	\begin{array}{ll}
+		a_{i-1,j-1} + 1 & \mathrm{if } x_i = y_j \\
+		\max\{a_{i,j-1}, a_{i-1,j}\} & \mathrm{if } x_i \neq y_j.
+	\end{array}
+\right.
+\end{equation}
 
 
 
