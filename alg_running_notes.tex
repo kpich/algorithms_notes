@@ -1,7 +1,7 @@
 \documentclass{article}
 
 
-\title{Algorithms running notes}
+\title{Algorithms Notes}
 \author{Karl Pichotta}
 \date{Spring 2013}
 
@@ -11,14 +11,33 @@
 \newcommand{\inv}{^{-1}}
 \newcommand{\Z}{\mathbb{Z}}
 
+\newcommand{\beq}{\begin{equation}}
+\newcommand{\eeq}{\end{equation}}
+
 
 \begin{document}
 
 \maketitle
 
+\begin{abstract}
+These are  notes I've been taking for a graduate algorithms
+course taught by Greg Plaxton at UT Austin.
+They're taken primarily in-class, and probably only useful for my own
+ personal reference.
+\end{abstract}
+
 \section{Preamble: Useful identities}
 
+
+
+
 \begin{itemize}
+
+	\item For nonzero $a,b,c$, we have
+	\beq
+	a^{\log_b c} = 
+	c^{\log_b a}
+	\eeq
 
 	\item
 	For large $n$, we have
@@ -35,6 +54,13 @@
 		&\approx 
 		e\inv
 	\end{align}
+	
+	\item For nonzero integer $n$, we have
+	\beq
+	n^2 = n + 2{n\choose 2}.
+	\eeq
+	Both the algebraic and intuitive justifications for this identity
+	should be pretty clear.
 
 \end{itemize}
 
@@ -765,6 +791,278 @@ a_{ij} =
 	\end{array}
 \right.
 \end{equation}
+
+
+
+
+\subsubsection{The Partition Problem (a pseudopolynomial algorithm)}
+
+This problem is NP-hard.
+Suppose we have $n$ positive integers $x_1, \ldots, x_n$.
+We want to know whether the $x_i$'s can be partitioned into two multisets
+of equal sum.
+
+We give a DP algorithm.
+First, let $\sum x_i = 2s$.
+(Note if the sum is odd, we return that there is no such partition).
+To determine $s$, it' a natural thing to consider computing
+\beq
+a_{i,j} = \left\{
+\begin{array}{ll}
+	T & \textrm{if there's a subseq. of $x_1,\ldots,x_i$ summing to exactly $j$} \\
+	F & o.w.
+\end{array}
+\right.
+\eeq
+Note $\forall i$, $a_{i,0} = T$.
+Further, $\forall j > 0$ $a_{0,j} = F$.
+When $i,j > 0$, we have
+\beq
+a_{i,j} = \left\{
+\begin{array}{ll}
+	a_{i-1,j} & 
+	\textrm{if } j < x_i
+	\\
+	a_{i-1,j} \vee a_{i-1,j-x_i}
+	& o.w.
+\end{array}
+\right.
+\eeq
+NB we only really need the first term for the technicality of the subscript
+on the RHS disjunct being negative.
+
+Now, the number of table entries is $O(nS)$.
+Is this polynomial time?
+Intuitively, no---$S$ can be very large.
+We argue that the algorithm is not polynomial; to do so, we need to find
+one family of inputs where the runtime is not upper-bounded by a polynomial
+function of the input in bits.
+
+What do we mean by polynomial time?
+Well, we upper-bound the runtime of an algorithm according to a polynomial
+function of its input in bits.
+What's the input of this like?
+Well, consider an input where each $x_i$ is an $n$-bit integer.
+The input size for this problem is $\Theta(n^2)$ bits (we have $n$ $n$-bit numbers).
+For us to claim that we have a polynomial runtime, we need that, for such
+inputs, the runtime is polynomial in $n$.
+$S$, however, is $O(n 2^n)$, since an $n$-bit integer can be as large
+as $2^n$ in value (and we have $n$ of them).
+So, more importantly, $S$ can be $\Omega(n 2^n)$.
+So this algorithm, which kinda looks like it's polynomial, actually
+isn't polynomial in the input size.
+
+However, sometimes these sorts of algorithms are useful.
+If we know, for example, that each of the numbers is at most $n^3$, then we have
+that $S$ is at most $n^4$, and we have a polytime algorithm.
+We call algorithms like this \emph{pseudopolynomial}: they are
+polynomial in the input size if the input integers are represented
+in unary.
+
+
+\section{1/31/2013: Greedy Algorithms}
+
+\subsection{A Scheduling Problem}
+
+Suppose we have $n$ tasks, each with a positive integer deadline and an
+execution requirement.
+So an input may look like
+
+\begin{tabular}{| lll |}
+\hline
+task & Deadline & execution requirement \\
+A & 8 & 5 \\
+B & 6 & 2 \\
+C & 9 & 2 \\\hline
+\end{tabular}
+
+We want to know if we can meet all the deadlines in a nonpreemptive schedule?
+So, in the above, suppose we run $B$ at time 0 and $C$ at time 2; both
+of these take time 2, and have met their deadlines. 
+If we run $A$ next, though, it'll miss its deadline.
+However, if we run in the order $BAC$, we get a feasible schedule.
+
+We may want to try to get at this by Dynamic Programming, but we don't
+need it: a greedy solution ends up sufficing.
+We use \emph{earliest deadline}, breaking ties arbitrarily.
+This will yield a feasible schedule if one exists.
+
+We want to argue that the answer to the greedy algorithm is right iff there's
+a feasible schedule.
+Clearly, Left to Right is easy.
+The argument is R to L, then: If there's a feasible schedule, then we need
+to show the greedy algorithm finds it.
+
+So take a feasible schedule.
+Assume the feasible schedule has no ``spaces'': there's no advantage
+to idle time, so everything is ``squeezed'' as far as possible to the left.
+Suppose that we have a schedule $ABCD$ of four elements, in that order.
+Suppose that $C$ has an earlier deadline than $B$; earliest deadline
+would have chosen the order $ACBD$, rather than $ABCD$.
+
+We can modify the schedule by leaving everything the same except for 
+$B$ and $C$, swapping the latter two.
+Note the new schedule is clearly the same length.
+We want to show that $ACBD$ is also feasible.
+Clearly $C$ meets it deadline still---it's moved earlier.
+We need to show that $B$ is meeting its deadline.
+Since, by assumption, $C$ had a more stringent deadline than $B$, it must
+be the case that if $B$ finishes when $C$ did before, it certainly meets
+its deadline, since it meets $C$'s deadline.
+In other words, before, with $ABCD$, $C$ was meeting its deadline; we know that 
+$B$'s deadline is later than $C$'s, so in $ACBD$, $B$ definitely meets its deadline.
+
+We apply the same logic to the new problem instance to argue that it's feasible 
+(eventually we will get to the earliest-first schedule).
+
+
+
+
+\subsection{A variation of the scheduling problem}
+
+Suppose that, in addition to the deadline and execution requirements,
+each task has a positive profit $p_i > 0$ associated with it.
+Our goal is to find a max-profit feasible subset (that is, we won't in general
+use the entire set of tasks).
+What we'll do is combine the greedy approach with dynamic programming.
+
+We first order tasks by deadline (in nondecreasing order).
+We then consider all prefixes with respect to that particular ordering.
+The DP's subproblem is $a_{k,t}$, defined as the max profit we can
+obtain with a schedule using only the first $k$ tasks and time $\leq t$.
+We can write a recurrence fairly straightforwardly (left as an exercise).
+
+The runtime of the above will be polynomial if the execution requirements
+are polynomially-bounded.
+That is, if every task has a task that is $O(n^c)$ for some $c$.
+Without such an assumption, we could get an exponentially-sized
+table in our DP
+
+
+\subsection{Matroids}
+
+Captures a large class of greedy algorithms.
+Consider the MInimal Spanning Tree problem, in particular, Kruskal's
+greedy algorithm.
+One way to convince ourselves that Kruskal's algorithm is correct
+is to reason directly about minimal spanning trees.
+Another is to frame the algorithm as a matroid problem, and use a general
+property about Matroids.
+
+A Matroid is a pair
+$$
+M = (S,\mathcal I)
+$$
+with $S$ analogous to the vertices in a graph: it's just a set.
+$\mathcal I$ is called the \emph{independent sets} of $S$: $\mathcal I \subseteq 2^S$ (elements are subsets of $S$).
+We need two more properties:
+\begin{enumerate}
+	\item
+	\textbf{Hereditary Property}: if $A\in\mathcal I$ and $B\subseteq A$, 
+	then $B\in\mathcal I$.
+	
+	\item
+	\textbf{Exchange Property}:
+	If $A,B\in \mathcal I$ and $|A| > |B|$, then
+	there is some $x \in A\setminus B$ such that $B\cup\{x\} \in \mathcal I$.
+\end{enumerate}
+The hereditary property tells us that removing elements from an independent
+set yields an independent set.
+In particular, this tells us that $\emptyset\in\mathcal I$.
+
+Define a maximal independent set as an independent set such that, if you
+add any additional elements to it, it will no longer be independent.
+The exchange property tells us that all maximal independent sets
+will have the same cardinality.
+
+In a \textbf{weighted matroid}, each element $x\in S$ has an associated
+weight $w(x)$.
+In applications, we often want to compute a maximum (or minimum) weight
+maximal independent set.
+For example, eventually we'll have a minimal spanning tree representing a
+minimum weight maximal independent set (the maximal independent sets will
+correspond to the spanning trees).
+
+
+
+
+\section{Matroid Greedy Algorithm}
+
+Suppose we want to do maximization.
+\begin{itemize}
+
+\item
+First, sort the elements of $S$ in nonincreasing order of weight (if we
+are minimizing, we'll sort in the other direction).
+
+\item
+Initialize
+$
+A := \emptyset
+$
+
+\item
+For each $x\in S$, in the order determined in the first step:
+	\begin{itemize}
+		\item
+		If $A\cup \{x\} \in \mathcal I$, then $A := A \cup \{x\}$.
+	\end{itemize}
+\end{itemize}
+And that's it.
+Thinking about Kruskal's algorithm, the set $\mathcal I$ will be the set
+of acyclic graphs---the conditional above corresponds to the conditional
+in that algorithm.
+
+
+How do we show this algorithm is correct?
+First, index the elements of $S$ $1,\ldots,n$ according to the
+ordering in the first step.
+Call the weight for element $i$ in this ordering $w_i$.
+For each $i$, calculate some max-weight maximial independent set $B$.
+Mark down if element $i$ is in $B$ or not.
+Also, for each $i$, consider $A$, the set computed at that step by the algorithm.
+What we need to do is prove, for each step, $A$ is a maximal weight independent step.
+Similarly, look at whether elem $i$ is put in $A$.
+
+Look at the first part where the sets $A$ and $B$ differ.
+It can't be the case that the elem $i$ is in $B$ but not in $A$ (proof? It has
+somethign to do with the hereditary property, not sure what).
+So the first place where the two differ is that an element $i$ must
+be in $A$ and not in $B$.
+WE note the first place $i$ where $A$ and $B$ differ.
+Construct $A'\subset A$ from all the before $i$ in the ordering, and also elem $i$.
+Now, we know $|B| \geq A'$, since $|A'| \leq |A|$, and $|B| = |A|$, by the
+exchange property.
+
+We repeatedly apply the exchange property to add elements from $B$ to $A'$.
+The exchange property tells us that we can add an element from $B$ to $A'$
+and get an independent set, so long as $|A'| < |B|$.
+This process terminates exactly when $|A'| = |B|$.
+
+When we're done growing $A'$, $B$ gave $A'$ all its elements from $i+1$ onwards
+except for one of them.
+In other words,
+$$
+A' = (B + i) = j
+$$
+for some $j$.
+That is $A'$ has elem $i$ while $B$ doesn't, and $A'$ deosn't get some
+$j>i$.
+However, since the elements are ordered by weight, and $w_j \leq w_i$,
+we can conclude that
+$$
+w(A') \geq w(B).
+$$
+
+Now we play the whole game over, but with $B$ replaced by $A'$.
+This gets us ``one step'' in the right direction, and we iterate
+this process until we end up with $A' = A$, at which point we can
+argue that $A$ was a max-weight maximal independent set.
+ 
+
+
+
+
 
 
 
