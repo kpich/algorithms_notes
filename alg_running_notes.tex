@@ -974,6 +974,7 @@ Define a maximal independent set as an independent set such that, if you
 add any additional elements to it, it will no longer be independent.
 The exchange property tells us that all maximal independent sets
 will have the same cardinality.
+A maximal independent set is sometimes called a \textbf{basis}
 
 In a \textbf{weighted matroid}, each element $x\in S$ has an associated
 weight $w(x)$.
@@ -986,7 +987,7 @@ correspond to the spanning trees).
 
 
 
-\section{Matroid Greedy Algorithm}
+\subsection{Matroid Greedy Algorithm}
 
 Suppose we want to do maximization.
 \begin{itemize}
@@ -1058,7 +1059,230 @@ Now we play the whole game over, but with $B$ replaced by $A'$.
 This gets us ``one step'' in the right direction, and we iterate
 this process until we end up with $A' = A$, at which point we can
 argue that $A$ was a max-weight maximal independent set.
+
+
+
+\subsection{Some examples of Matroids}
+
+\begin{itemize}
+	\item \textbf{Uniform matroid}: Let $|S| = n$. 
+	Fix $0\leq k \leq n$.
+	$\mathcal I$ is the set of all subsets of $S$ of size $\leq k$.
+	This is a matroid.
+	The hereditary property is pretty obvious.
+	The exchange property is also pretty clear: if we have $A$ and $B$
+	such that $|A| < |B|$, then there's clearly an element in $B$ that's
+	not in $A$ such that adding it to $A$ will result in an element of 
+	cardinality $\leq k$.
+	
+	
+	\item
+	\textbf{Partition matroid}: 
+	Fix a partition of $S$ into $\{S_1\,ldots, S_k\}$.
+	Define $\mathcal I$ to be the set of all subsets $A\subseteq S$
+	such that $\forall i |S_i\cap A| \leq 1$.
+	
+	A basis (maximal independent set) for this matroid
+	would be a set that chooses exactly one element from each $S_i$.
+	The number of such bases is
+	$$
+	\prod_{i=1}^k |S_i|.
+	$$
+	The hereditary property is pretty clear.
+	The exchange property: Suppose we have two sets $A$ and $B$ with 
+	$A$ smaller. The argument is a bit more complicated for this and
+	I'm not coyping it down, but not too tough.
+	
+	\item
+	\textbf{Scheduling problem}: we have $n$ tasks
+	numbered from $1$ to $n$.
+	Task $i$ has a positive integer deadline $d_i$, a positive weight
+	$w_i$ (the profit of the task, say), and an execution requirement
+	of 1 (unit tasks). We're scheduling these tasks on a shared resource.
+	
+	What is the maximum-weight schedulable subset of the tasks? We might
+	not be able to meet all tasks of the schedule, so we ask what's the 
+	max-weight one.
+	This is a bit complex: Suppose there are 2 tasks with deadline 1, 
+	and two tasks with deadline 2. We can schedule
+	at most one of the former, but two of the latter (but only if we
+	schedule neither of the first two).
+	
+	This problem ends up having a useful matroid structure, allowing us to
+	use the matroid greedy algorithm.
+	
+	Define the set $S$ as the set of $n$ tasks.
+	$\mathcal I$ will be the schedulable subsets of the tasks.
+	If this works, our optimal solution will certainly be a maximal 
+	independent set (this isn't necessarily true if we have negative
+	weights I don't think).
+	
+	Now, to show $(S,\mathcal I)$ is a matroid. The hereditary property
+	is pretty clear.
+	The exchange property is a bit trickier.
+	Suppose $A,B\in\mathcal I$, with $|A| > |B|$.
+	We proved earlier that $A$ is schedule iff any ED schedule (???) of
+	$A$ is feasible (wtf does this mean?).
+	Define a ``canonical'' ED schedule as one of the ED schedules: break
+	ties in a particular manner.
+	That is, we're constructing a schedule of a task $A$; we list tasks
+	in increasing order of their index or something like that, guaranteeing
+	a unique tie-breaking schedule.
+	The schedule, then, will be some ordering
+	$$
+	A = x_{i_1}, x_{i_2}, \ldots, x_{i_{|A|}}
+	$$
+	and
+	$$
+	B = x_{i_1}, x_{i_2}, \ldots x_{i_{|B|}}.
+	$$
+	Note that there will be no ``empty spaces'' in the schedule.
+	
+	Let's focus on the last task appearing in $A$ that isn't a part of $B$.
+	Define $z$ to be this tasks: the last task in the canonical ED schedule
+	of $A$ that does not belong to $B$.
+	To show the exchange property, we need to show there's something in $A$
+	that can be added to $B$.
+	We'll claim that $z$ is such an element; that is,
+	$B+z \in\mathcal I$ (that is, $B + z$ is schedulable).
+	
+	\begin{itemize}
+		\item \textbf{Case 1}: $z$ is the last task in the ED schedule of $A$.
+		Because $B$ is shorter, we can just tack $z$ onto the end of $B$;
+		it will surely meet its deadline, because it will start at least
+		as early as it started in $A$.
+		This isn't necessarily an ED schedule, but is feasible.
+		
+		\item
+		\textbf{Case 2}:
+		The ED schedule of $A$ ends with
+		$
+		z, y_1,\ldots,y_\ell
+		$
+		with $\ell \geq 1$ (that is, $z$ isn't the last element of $A$'s ED
+		schedule).
+		What we do is jimmy around with the schedule of $B$ to arrive at
+		a feasible schedule for $B+z$.
+		Leave the schedule before $y_1$ alone; put $z$ in the spot where
+		$y_1$ is.
+		Find $y_2$ in $B$'s schedule, and put $y_1$ in it; similarly,
+		put $y_{\ell - 1}$ into the schedule where $y_\ell$ was, and
+		tack $y_\ell$ onto the end (recall, these are the occurrences
+		of $y_1,\ldots,y_\ell$ in $B$'s ED schedule.
+		Now, $y_\ell$ in the new schedule for $B$ is no further to 
+		the right than it is in $A$'s schedule.
+		Similarly, the furthest to the right that $y_{\ell - 1}$ could
+		possibly be is where it is in $A$'s schedule.
+		So this is a feasible schedule (KBP: i don't see why 
+		$y_1,\ldots, y_\ell$ are in $B$'s schedule. Maybe they don't
+		have to be?).
+	\end{itemize}
+	
+	
+	
+	
+	
+	
+	\item
+	\textbf{Scheduling with release times}:
+	a more complicated version of the above.
+	Assume each task also has a positive integer \textbf{release time}.
+	Previously, we assumed all tasks were available at time $0$; we
+	restrict that assumption now: tasks become available to executable
+	at a certain point in time, and can only be scheduled past that time.
+	
+	Even with this additional constraint, we can construct a matroid
+	structure (we don't here).
+	
+	\item
+	\textbf{Transversal matroids}: even more general.
+	Say we have a bipartite graph $(U,V,E)$ (with $U,V$ the two sets of
+	vertices such that $\forall (u,v)\in E$, $u$ and $b$ aren't both in
+	$U$ or $V$).
+	Consider the matroid $(U,\mathcal I)$, with every $S\in\mathcal I$ a
+	``matchable'' subset of $U$, defined below.
+	A \textbf{matching} is a subsets of the edges $E$ that induces degree
+	at most $1$ on every vertex.
+	That is, in a matching has no vertex incident on more than 1 edge (that is,
+	every vertex has degree $\leq 1$).
+	Given a matching, call a vertex \textbf{matched} if it's incident
+	on one of the edges in the matching.
+	A subset $U$ of vertices is \textbf{matchable} if there exists some
+	matching matching every $u\in U$.
+	
+	So our matroid is $(U,\mathcal I)$, with $U$ the same set in our
+	bipartite graph $(U,V,\mathcal I)$ (proof that this is a matroid?).
+	Relating to the last scheduling problem: Consider $U$ the set of
+	tasks, and $V$ the set of times during which a task can start.
+	So supposing task $i$ has deadline of $5$ and a release time of $2$ (and
+	takes $2$ time units),
+	we'll add edges from $i\in U$ to $2,3,4$ in $V$.
+	Given this setup, every matchable subset corresponds to a valid
+	scheduling.
+	
+	The hereditary property is easy: if a set of tasks is matchable,
+	of course any subset is matchable.
+	
+	The exchange property is tricky: say we have $A,B\in\mathcal I$,
+	$|A| > |B|$.
+	Let $M_A$ be a matching matching exactly $A$ (which exists by assumption), 
+	and
+	let $M_B$ be a matching for $B$.
+	That is, the set of nodes matching in $M_A$ is exactly $A$ (so
+	$|M_A| = |A|$), ditto $B$.
+	We need to show that there is some $M$ matching $B+x$, for some
+	$x\in A\setminus B$.
+	Think of these matchings as sets of edges.
+	
+	Consider the graph $G\equiv (U,V,M_A \Delta M_B)$ (taht is, the symmetric
+	difference of $M_A$ and $M_B$: edges in exactly one of $M_A, M_B$).
+	Because $M_A$ is such that each node is of degree at most 1, we
+	have that $M_A\Delta M_B$ induces degree of at most 2.
+	$G$ consists of vertex-disjoint paths and cycles (the cycles are of
+	even length; each cycle would alternate between an edge in $M_A$ and
+	and edge in $M_B$---you can't have two consecutive edges from $M_A$,
+	because this would give us a node of degree 2).
+	
+	We cannot have only cycles: since we know that $|M_A| > |M_B|$, we must
+	have some paths (since every cycle draws an equal number of
+	edges from $M_A$ and $M_B$, I think).
+	In particular, there must be at least one odd-length path that
+	begins and ends with an edge in $M_A$.
+	Note that the paths, like the edges, alternate from edges in
+	$M_A$ and edges in $M_B$.
+	So assume WLOG that this path starts in $U$ and ends in $V$ (it's
+	odd-length, and a bipartite graph, so an odd-length path can't
+	begin and end in $U$ or $V$).
+	Call the node in $U$ that the path starts at $x$.
+	
+	We can obtain a matching for $B + x$ by making a slight
+	hack on $M_B$.
+	Take the odd-length path above; get rid of the original edges
+	from $M_B$, and add the edges from $M_A$ that were touching
+	the same nodes.
+	This doesn't lose matchability (every one of the nodes on the
+	path is still connected to exactly one edge, this time the edge
+	from $M_A$), and also now $x$ is matched.
+	
+	It's worth noting that the computational problem to solve the matroid
+	greedy algorithm is trickier for this formulation: we have to determine
+	matchability for arbitrary subsets, which is a little tricky.
+	
+	\item
+	\textbf{Graphic matroids}:
+	Fix an undirected graph $G=(V,E)$.
+	Define $M = (S,\mathcal I)$, with $S = E$
+	and
+	$\mathcal I$ the set of all acylic subsets of $E$.
+	The hereditary property is pretty obvious: removing edges won't
+	add cycles.
+	
+	We don't have time for the exchange property.
+	
+	
+\end{itemize}
  
+
 
 
 
