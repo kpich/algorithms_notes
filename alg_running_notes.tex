@@ -10,6 +10,7 @@
 
 \newcommand{\inv}{^{-1}}
 \newcommand{\Z}{\mathbb{Z}}
+\newcommand{\I}{\mathcal{I}}
 
 \newcommand{\beq}{\begin{equation}}
 \newcommand{\eeq}{\end{equation}}
@@ -1078,7 +1079,7 @@ argue that $A$ was a max-weight maximal independent set.
 	
 	\item
 	\textbf{Partition matroid}: 
-	Fix a partition of $S$ into $\{S_1\,ldots, S_k\}$.
+	Fix a partition of $S$ into $\{S_1,\ldots, S_k\}$.
 	Define $\mathcal I$ to be the set of all subsets $A\subseteq S$
 	such that $\forall i |S_i\cap A| \leq 1$.
 	
@@ -1089,9 +1090,10 @@ argue that $A$ was a max-weight maximal independent set.
 	\prod_{i=1}^k |S_i|.
 	$$
 	The hereditary property is pretty clear.
-	The exchange property: Suppose we have two sets $A$ and $B$ with 
-	$A$ smaller. The argument is a bit more complicated for this and
-	I'm not coyping it down, but not too tough.
+	The exchange property is a bit trickier, but also pretty clear.
+%	Suppose we have two sets $A$ and $B$ with 
+%	$A$ smaller. The argument is a bit more complicated for this and
+%	I'm not coyping it down, but not too tough.
 	
 	\item
 	\textbf{Scheduling problem}: we have $n$ tasks
@@ -1100,9 +1102,8 @@ argue that $A$ was a max-weight maximal independent set.
 	$w_i$ (the profit of the task, say), and an execution requirement
 	of 1 (unit tasks). We're scheduling these tasks on a shared resource.
 	
-	What is the maximum-weight schedulable subset of the tasks? We might
-	not be able to meet all tasks of the schedule, so we ask what's the 
-	max-weight one.
+	What is the maximum-weight schedulable subset of the tasks (in general,
+	we might not be able to meet all tasks of the schedule)?
 	This is a bit complex: Suppose there are 2 tasks with deadline 1, 
 	and two tasks with deadline 2. We can schedule
 	at most one of the former, but two of the latter (but only if we
@@ -1277,11 +1278,315 @@ argue that $A$ was a max-weight maximal independent set.
 	The hereditary property is pretty obvious: removing edges won't
 	add cycles.
 	
-	We don't have time for the exchange property.
+	We don't have time for the exchange property in class.
 	
 	
 \end{itemize}
  
+
+
+
+\section{2/7/2013: Minimal Spanning Trees and Matroids}
+
+Recall that, given an undirected graph $G=(V,E)$, we construct a graphic
+matroid from it by the set $(E,\I)$, with $A\in\I$ iff $A$ is acyclic.
+Here, the Maximally independent set are exactly the spanning forests;
+if $G$ is connected, then it is a spanning tree.
+
+Note that a \textbf{minimal dependent set} of a matroid $(S,\I)$ 
+is a dependent set (that is, a subset of $S$ not in $\I$) such that if we
+remove any element from it, we get an independent set.
+If we have a graphic matroid, then a minimal dependent set will be a cycle
+(we can't throw any edge out of the set without getting something
+that's acyclic).
+
+\subsection{A theorem and some corollaries about Matroids}
+
+\textbf{Lemma}:
+let $M=(S\I)$ be a weighted matroid.
+Let $A,B$ be distinct max-weight bases of
+$M$.
+Then there exists a sequence $A_1, \ldots, A_k$ of max-weight bases of $M$
+such that $A=A_1, B=A_k$, and for every $i$ with $1\leq i < k$, we have
+$$
+|A_{i+1} \setminus A_i| = 1.
+$$
+That is, $A_{i+1}$ and $A_i$ differ by a ``swap'':
+$$
+A_{i+1} = A_i + x - y
+$$
+with $x$ and $y$ having equal weight (since they're all max-weight).
+
+How do we prove this?
+One way is to use something similar to our proof of correctness for the
+matroid greedy algorithm.
+Well, we order the elements $(x_i, w_i)$ by decreasing order
+of weight, and then we line up $A$ and $B$, marking whether
+$x_i \in A$ and $x_i \in B$. We look at the first
+element such that $x_i\in A$ but $x_i\not \in B$, and, we obtain
+$B'$ by growing an $A^*$ or something,
+ starting with $A^*$, and growing to a basis via repeated application of the exchange
+property with $B$.
+So we'll end up with $B'$, which will differ from $B$ by a single swap.
+There'll be one element that $B$ does have but that $B'$ doesn't have;
+other than that, $B'$ (which is, I think, what you get after constructing
+as many $A^*$s as you can) and $B$ will be identical.
+
+Since $A$ and $B$ are both max-weight bases, what can we conclude
+about the basis $B'$?
+We have that $w(B') \geq w(B)$; we can get $B'$ from $B$ by exchanging
+the elements that differ, and the one in $B'$ is at least as heavy as that
+in $B$ (why?!).
+We cannot have $w(B') > w(B)$, since $B$ is a max-weight basis.
+
+So we will have obtained a third max-weight basis that agrees on a longer
+prefix with $A$ than $B$ did.
+We can do this again, getting a max-weight basis $B''$ differing from $B'$ by
+a single edge swap; eventually, we will end up with something
+equal to $A$.
+We will therefore have exhibited a sequence of the desired form: Something
+starting at $B$ and ending up at $A$, where each sequence is a max-weight basis
+differing from the previous by a single element.
+
+
+\textbf{Corollary to above:} all max-weight bases have the same distribution 
+of weights (that is, taking just the element weights and sorting it
+will yield the same list).
+(You might think that, e.g., you can have two minimal spanning trees
+such that one has an edge of weight 10 and 5, and the other has instead
+two edges of weight 8 and 7; this corollary rules out that possibility.)
+
+\textbf{Another corollary}: Every max-weight basis is a
+possible output of the matroid greedy algorithm (that is, will be produced
+if ties in weight are resolved appropriately).
+(You might think that, in Kruskal's algorithm, for example, that you can
+have a graph with a couple MSTs such that one of them will never be produced;
+this isn't possible, by this corollary. There will be a tie-breaking that will
+cause every MST to be produced.)
+It's pretty easy to see what tie-breaking is appropriate: break ties by
+giving priority to elements in our desired max-weight basis.
+
+\textbf{A third corollary}: if the weights are all distinct, then there
+is a unique max-weight basis.
+Cool!
+
+\subsection{Matric Matroids}
+
+There is another class of matroids called \textbf{``matric matroids''},
+defined in terms of a given matrix $A$.
+Define such a matroid $M=(S,\I)$, with $S$ the columns of $A$, and
+$\I$ the sets of linearly independent columns of $A$.
+You can't model all matroids as matric matroids, but a bunch of the classes
+of matroids discussed above can be modeled as matric matroids.
+
+It's useful, in general, to consider these special classes of matroids,
+rather than considering matroids in full generality, because we can
+often get faster algorithms for specific matroids.
+
+
+\section{2/7/2013 (cont): Amortized Analysis}
+
+Amortized analysis is typically used in settings where the cost of
+operations is nonuniform: we ask, if we spend $k$ operations, what sort
+of bounds can we put on performance.
+So if we have some operations that are much more expensive than others, but
+the overall cost is less than the pessimistic estimate (wherein we upper-bound
+every single operation by the worst-case performance).
+
+There are different methods of amortized analysis:
+\begin{enumerate}
+
+	\item 
+	\textbf{Aggregate method}:
+	Simply sum up the cost of all the individual operations to bound the total
+	cost of a sequence of operations.
+	This is the most basic approach, but can get kind of messy.
+	
+	\item
+	\textbf{Accounting method}: 
+	Suppose we're trying to prove a theorem that any sequence of $k$ 
+	operations
+	will take $O(k)$; then, when an operation is performed, we'll want to
+	give an operation a constant amount of dollars in order to do it (we'll
+	give an operation $\$10$ to fund its execution, if we're trying to bound
+	the operations at amortized $\$10$.
+	The actual semantics are that an operation uses the money we give it; if
+	it uses less than we give it, it puts the rest of the money into different
+	piles of money in the data structure.
+	When an expensive operation takes a lot, then it uses the leftover piles
+	of money from the preceding operations.
+	
+	If the money we inject into a system is enough to pay for all the 
+	operations,
+	then we can get bounds on the running time.
+	
+	Note that it'll frequently make sense to convert this approach
+	to the potential approach, described below (where the potential
+	corresponds to ``amount of money left in data structure'').
+	
+	\item
+	\textbf{Potential method}: (sometimes, potential function method):
+	A more general method, emphasized more in this course.
+	We define a potential function mapping the state of the 
+	data structure to a (usually nonnegative) number.
+	The amortized cost of an operation will be the actual cost plus
+	the change in potential.
+	
+	So if an operation changes the state of the data structure from
+	$D$ to $D'$, then the change in potential is $\phi(D') - \phi(D)$, with
+	$\phi$ the potential.
+	
+	We'll use the potential function to make sure the amortized costs all
+	look similar, making it easy to add up the amortized cost.
+	
+	This is tricky---what we really care about is the total cost, rather
+	than the total amortized cost (which is this funny function of the
+	actual cost that we made up).
+	However, summing things up makes it make sense:
+	
+	Suppose the state of our data structure before/after each of 
+	our operations is $D_0, \ldots, D_k$.
+	When we sum the total cost, we get the potential telescoping: the sum
+	of the potentials is 
+	$$
+	\phi(D_1) - \phi(D_0) + \phi(D_2) - \phi (D_1) + \ldots
+	$$
+	which gives us that the total amortized cost is the
+	total cost plus the final potential ($\phi(D_k)$ minus the initial potential ($\phi(D_0)$).
+	
+	Usually, the initial potential is $0$, and the final potential is
+	typically nonnegative; this means that the total amortized cost,
+	according to this method, will actually be an overestimate of the
+	total cost (since total amortized cost = total cost + final potential).
+\end{enumerate}
+
+
+
+
+\subsection{Three Examples}
+
+\subsubsection{Push/multipop stack}
+
+We have a cheap operation, pop (push a single item from the stack),
+and a potentially expensive one, multipop, which pops $k$ times 
+(taking time proportional to $k$).
+
+So a push has actual cost $1$, and multipop($k$) will have cost $k$;
+multipop($k$) can only be performed on a stack with at least $k$ elements.
+What is the cost of a sequence of $n$ operations starting with
+the empty stack?
+
+\begin{itemize}
+	\item 
+	\textbf{Naive approach}:
+	At all times, we cannot have more then $n$ elements on the stack.
+	No single operation costs more than $n$: at most, we can pop $n$
+	elems at any time.
+	Since we have $n$ operations, the total cost is $\leq n^2$.
+	
+	This is a very weak upper bound: we'll see that our handful of
+	expensive operations must be offset by a bunch of cheap 
+	operations.
+	
+	\item
+	\textbf{Aggregate Method}:
+	The total cost of all multipops must be $\leq$ the total cost of all 
+	pushes.
+	If we ever multipop off 10 items, we can only do that if, previously,
+	we'd pushed all of them on, at a total cost of $n$.
+	Since the total cost of all pushes is $\leq n$ (we perform at most
+	$n$ pushes of cost 1), we have that the total cost is at most $2n$.
+	
+	\item
+	\textbf{Accounting method}:
+	Give the system $\$2$ for each push, and $\$0$ for each multipop.
+	We'll want to show that the pushes have amortized cost 2 and the
+	multipops have 0 amortized cost; this would imply that the total
+	amortized cost is at most $2n$.
+	
+	When a push happens, it has to take one dollar; it puts the
+	extra dollar onto the pile.
+	At any point, a stack of $m$ elements will have $\$m$ sitting around.
+	In fact, we can think of each element keeping its dollar, and so
+	we can easily prove taht each element has one dollar associated with
+	it, and so we'll be able to fund every operations.
+	
+	\item
+	\textbf{Potential method}:
+	Define $\phi$ of a stack to be the number of elements on the stack
+	(notice that this is basically the same as the accounting argument).
+	Then it's easy to show, using the argument we just gave, that
+	we can bound the cost of operations linearly.
+	
+
+\end{itemize}
+
+
+
+
+\subsubsection{Incrementing a binary counter}
+
+We have a counter that has the number $0$ initially, and we have only
+one operation: increment counter.
+We increment in the most elementary way: start at the LSB, flip and
+possibly carry, and continue until you hit a 0.
+So the increment operations are occasionally expensive (if you have to
+flip a lot of 1's to 0's), but they're usually cheap.
+We'd hope that, over a large sequence of $k$ increments, our total cost
+would be $O(k)$.
+
+Concretely, we imagine our counter having an infinite number of bits going
+off to the left.
+The first increment will take cost 1; the next will take 2 (we have to
+flip 2 bits); the third will flip 1 bit; the next 3; and so on.
+
+
+\begin{itemize}
+
+	\item
+	\textbf{Aggregate method}: the total cost of $n$ operations will
+	give us taht roughly 1/2 the operations will have cost 1 (every other
+	number is even); 1/4 of the ops will cost 2; 1/8 will cost 3, and
+	so on.
+	So the total cost is
+	$$
+	(n/2) + 2(n/4) + 3(n/8) + \ldots
+	\leq
+	\sum_{i\geq 0} \frac{i}{2^i}
+	 = 2
+	$$
+	(the last equivalence is somewhat nontrivial)
+	
+	\item
+	\textbf{Accounting method}: $\$2$ / operation.
+	We'll need to maintain a different invariant from the stack: we might
+	think that we'd have a dollar per bit, but that won't end up
+	working.
+	We instad have $\$1$ for each 1-bit in the counter: if our number is
+	$001011$, then we have $\$3$.
+	It's not tough to see this works: incrementing the counter, if we have
+	$k$ bit flips, we had to convert $k-1$ 1's to 0's; we grab that dollar
+	going around, and then deposit our extra dollar on the 1.
+	
+	\item
+	\textbf{Potential method}:
+	$\phi$ will is the number of 1s present in the counter.
+
+\end{itemize}
+
+
+
+\subsubsection{Dynamic Array}
+
+The canonical example: suppose we're using an STL vector or a Java
+ArrayList.
+The underlying implementation doesn't know how much space is needed;
+we'll reserve space, but from time to time, the application will
+exceed the bounds, and a large cost will be incurred.
+So sometimes a single push can be very expensive, but we'll want to 
+determine that the total cost of a sequence of operations is, say, $O(k)$.
+
+
 
 
 
