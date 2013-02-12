@@ -1303,7 +1303,7 @@ that's acyclic).
 \subsection{A theorem and some corollaries about Matroids}
 
 \textbf{Lemma}:
-let $M=(S\I)$ be a weighted matroid.
+let $M=(S, \I)$ be a weighted matroid.
 Let $A,B$ be distinct max-weight bases of
 $M$.
 Then there exists a sequence $A_1, \ldots, A_k$ of max-weight bases of $M$
@@ -1317,14 +1317,15 @@ A_{i+1} = A_i + x - y
 $$
 with $x$ and $y$ having equal weight (since they're all max-weight).
 
+\textbf{Proof}: 
 How do we prove this?
 One way is to use something similar to our proof of correctness for the
 matroid greedy algorithm.
-Well, we order the elements $(x_i, w_i)$ by decreasing order
+We order the elements $(x_i, w_i)$ by decreasing order
 of weight, and then we line up $A$ and $B$, marking whether
 $x_i \in A$ and $x_i \in B$. We look at the first
 element such that $x_i\in A$ but $x_i\not \in B$, and, we obtain
-$B'$ by growing an $A^*$ or something,
+$B'$ by growing an $A^*$ somehow (how?!),
  starting with $A^*$, and growing to a basis via repeated application of the exchange
 property with $B$.
 So we'll end up with $B'$, which will differ from $B$ by a single swap.
@@ -1359,10 +1360,10 @@ two edges of weight 8 and 7; this corollary rules out that possibility.)
 \textbf{Another corollary}: Every max-weight basis is a
 possible output of the matroid greedy algorithm (that is, will be produced
 if ties in weight are resolved appropriately).
-(You might think that, in Kruskal's algorithm, for example, that you can
+You might think that, in Kruskal's algorithm, for example, that you can
 have a graph with a couple MSTs such that one of them will never be produced;
 this isn't possible, by this corollary. There will be a tie-breaking that will
-cause every MST to be produced.)
+cause every MST to be produced.
 It's pretty easy to see what tie-breaking is appropriate: break ties by
 giving priority to elements in our desired max-weight basis.
 
@@ -1381,7 +1382,7 @@ of matroids discussed above can be modeled as matric matroids.
 
 It's useful, in general, to consider these special classes of matroids,
 rather than considering matroids in full generality, because we can
-often get faster algorithms for specific matroids.
+often get faster algorithms for specific types of matroids.
 
 
 \section{2/7/2013 (cont): Amortized Analysis}
@@ -1389,8 +1390,9 @@ often get faster algorithms for specific matroids.
 Amortized analysis is typically used in settings where the cost of
 operations is nonuniform: we ask, if we spend $k$ operations, what sort
 of bounds can we put on performance.
-So if we have some operations that are much more expensive than others, but
-the overall cost is less than the pessimistic estimate (wherein we upper-bound
+So we may have some operations that are much more expensive than others, but
+nevertheless we may be able to bound the overall cost as being less than the 
+pessimistic estimate (wherein we upper-bound
 every single operation by the worst-case performance).
 
 There are different methods of amortized analysis:
@@ -1406,8 +1408,10 @@ There are different methods of amortized analysis:
 	\textbf{Accounting method}: 
 	Suppose we're trying to prove a theorem that any sequence of $k$ 
 	operations
-	will take $O(k)$; then, when an operation is performed, we'll want to
-	give an operation a constant amount of dollars in order to do it (we'll
+	will take $O(k)$ time.
+	Then, when an operation is performed, we'll 
+	give an operation a constant amount of dollars in order to do it. 
+	For example, we'll
 	give an operation $\$10$ to fund its execution, if we're trying to bound
 	the operations at amortized $\$10$.
 	The actual semantics are that an operation uses the money we give it; if
@@ -1429,7 +1433,7 @@ There are different methods of amortized analysis:
 	A more general method, emphasized more in this course.
 	We define a potential function mapping the state of the 
 	data structure to a (usually nonnegative) number.
-	The amortized cost of an operation will be the actual cost plus
+	The amortized cost of an operation will be defined as the actual cost plus
 	the change in potential.
 	
 	So if an operation changes the state of the data structure from
@@ -1439,17 +1443,19 @@ There are different methods of amortized analysis:
 	We'll use the potential function to make sure the amortized costs all
 	look similar, making it easy to add up the amortized cost.
 	
-	This is tricky---what we really care about is the total cost, rather
+	This seems weird---what we really care about is the total cost, rather
 	than the total amortized cost (which is this funny function of the
 	actual cost that we made up).
 	However, summing things up makes it make sense:
 	
 	Suppose the state of our data structure before/after each of 
 	our operations is $D_0, \ldots, D_k$.
-	When we sum the total cost, we get the potential telescoping: the sum
+	When we sum the total amortized cost, we get the potential telescoping: 
+	the sum
 	of the potentials is 
 	$$
 	\phi(D_1) - \phi(D_0) + \phi(D_2) - \phi (D_1) + \ldots
+	= \phi(D_k) - \phi(D_0)
 	$$
 	which gives us that the total amortized cost is the
 	total cost plus the final potential ($\phi(D_k)$ minus the initial potential ($\phi(D_0)$).
@@ -1458,6 +1464,9 @@ There are different methods of amortized analysis:
 	typically nonnegative; this means that the total amortized cost,
 	according to this method, will actually be an overestimate of the
 	total cost (since total amortized cost = total cost + final potential).
+	So if we can place an upper bound on the total amortized cost, that will
+	also give us an upper bound on the total cost.
+	
 \end{enumerate}
 
 
@@ -1467,12 +1476,12 @@ There are different methods of amortized analysis:
 
 \subsubsection{Push/multipop stack}
 
-We have a cheap operation, pop (push a single item from the stack),
+We have a cheap operation, push (push a single item from the stack),
 and a potentially expensive one, multipop, which pops $k$ times 
 (taking time proportional to $k$).
+Multipop($k$) can only be performed on a stack with at least $k$ elements.
 
-So a push has actual cost $1$, and multipop($k$) will have cost $k$;
-multipop($k$) can only be performed on a stack with at least $k$ elements.
+So a push has actual cost $1$, and multipop($k$) will have cost $k$.
 What is the cost of a sequence of $n$ operations starting with
 the empty stack?
 
@@ -1508,8 +1517,8 @@ the empty stack?
 	extra dollar onto the pile.
 	At any point, a stack of $m$ elements will have $\$m$ sitting around.
 	In fact, we can think of each element keeping its dollar, and so
-	we can easily prove taht each element has one dollar associated with
-	it, and so we'll be able to fund every operations.
+	we can easily prove that each element has one dollar associated with
+	it, and so we'll be able to fund every operation.
 	
 	\item
 	\textbf{Potential method}:
@@ -1571,6 +1580,18 @@ flip 2 bits); the third will flip 1 bit; the next 3; and so on.
 	\item
 	\textbf{Potential method}:
 	$\phi$ will is the number of 1s present in the counter.
+	The amortized cost is the actual cost $+ \Delta\phi$.
+	So note that the counter always looks like $01^k$ for some $k$ (with
+	some stuff before it);
+	an increment flips that to $10^k$.
+	So the change in potential is $1 - k$: The potential before is however
+	many $1$'s there are; the potential after is $1 - k$ minus that (we
+	flip $k$ bits and change 1 to a 0).
+	So the actual cost is $k+1$; the change in potential is $1-k$;
+	thus the actual cost + $\Delta\phi$ is 2.
+	We can thus bound the cost of $n$ increments by $2n$.
+	
+	Note this is basically also an accounting argument.
 
 \end{itemize}
 
@@ -1585,6 +1606,71 @@ we'll reserve space, but from time to time, the application will
 exceed the bounds, and a large cost will be incurred.
 So sometimes a single push can be very expensive, but we'll want to 
 determine that the total cost of a sequence of operations is, say, $O(k)$.
+
+We want space usage to be proportional to the number of elements in the array;
+that is, we don't want to just allocate way more space than we'll ever need
+and call it a day.
+Further, we'll want to ensure that we're using at least a constant
+fraction of our currently allocated array.
+Further, we'll want contiguous elements in memory---we can't just 
+allocate space on the heap for each element individually.
+
+We'll do the usual thing---when we run out of space, we'll call \texttt{grow},
+which doubles the size of the allocation and copies the old elements over.
+We'd like to give a potential function argument to prove that the
+amortized cost of grow is $O(1)$.
+That is, we want a function such that amortized cost = actual cost 
+$+ \Delta\phi$
+is constant, no matter what phase we're in.
+
+So supposing we have $k$ things in our array, and we have to call grow,
+we'll have $\Theta(k)$ cost (say, $ck$).
+We then need a potential function such that $\Delta \phi$ is $-ck + O(1)$.
+We'll make $\phi$ depend on the current size $s$ (the number of elements
+in the array) and capacity $n$ (note $s\leq n$).
+
+If we let
+$$
+\phi = c( 2s-n)
+$$
+we note that during a grow operation, we get $\Delta\phi = 2c$, 
+or somethign? Maybe I got that wrong (go through this argument!)
+Note that after a grow operation, $s=k+1$ and $n=2k$.
+Note also that $\phi$ is nonnegative except possibly for the very beginning
+(which we could handle with a special case)
+
+
+Suppose now we want to add a \texttt{shrink} operation: when the
+array gets less than a quarter full (that is, $S < n/4$), we want to halve its capacity.
+Note we cannot just say ``halve the length of the array when it's less than
+half full'', because this would give us a sequence
+of extremely expensive operations: we could go back and forth inserting and
+removing, right around the point where an array is full, doubling
+and halving the array, giving us a large fraction of operations that are
+very expensive.
+
+How can we modify $\phi$ such that, with shrink, we still get good performance?
+We design a function such that, when we grow, our potential ramps up from
+$0$ to $\Theta(n)$ (as the previous one did).
+However, we'll also require that when you shrink from half-full to quarter-full,
+we want the potential to increase to $\Theta(n)$ too (which our old one didn't
+do).
+COnsider
+$$
+\phi = \max\{
+	c(2s - n), c'(n - 2s)
+\}.
+$$
+The first covers the case we had before; the latter covers the case
+where we're less than half full (the $c$ constants are different because
+grow and shrink could have different costs).
+This function works---when we grow, we get a big change in potential; when
+we shrink, we get a big change in potential; in between, when incrementing
+or decrementing, the potential doesn't change much---it's just $O(1)$.
+The overall amortized cost, therefore, of these ``noncritical'' operations
+is constant.
+(Note that sometimes the amortized cost will end up 0 or negative; that's 
+fine, just a side-product of the funny math going on.)
 
 
 
