@@ -62,6 +62,35 @@ They're taken primarily in-class, and probably only useful for my own
 	\eeq
 	Both the algebraic and intuitive justifications for this identity
 	should be pretty clear.
+	
+	\item
+	For large $n$, we have
+	$$
+	\sum_{i=1}^n \frac{1}{n} \approx \ln n + \gamma
+	$$
+	with $\gamma$ the Euler-Mascheroni constant (about $0.58$)
+	
+	
+	
+	\item
+	For arbitrary positive $n,k$, we have
+	$$
+	{n\choose k} \geq 
+	\left(\frac{n}{k}\right)^k
+	$$
+	can be seen from the equation:
+	\begin{align*}
+	{n\choose k} 
+	&=
+	\frac{n!}{k! (n-k)!}
+	\\
+	&=
+	\frac{\prod_{i=0}^{k-1}(n-i)}
+		 {k!}
+	\end{align*}
+	(FINISH ME)
+	
+	
 
 \end{itemize}
 
@@ -206,7 +235,7 @@ What we want, however, is a high probability bound.
 That is, we want a statement of the form ``at least one of  bins, whp, will get at least $k$ bounds''.
 We can't use a Chernoff bound, because the $E_i$'s are not independent, so therefore the distribution isn't Binomial.
 
-From a highl-level perspective: we throw $n$ balls into $n$ bins, then ask if $E_1$ occurred.
+From a high-level perspective: we throw $n$ balls into $n$ bins, then ask if $E_1$ occurred.
 If it did, then we'll be happy, because all we want is one of the $E_i$s to occur (NB $PR(E_1) \geq 1 / (n^{\varepsilon'}$).
 If $E_1$ doesn't occur, then note
 $$
@@ -526,7 +555,7 @@ So cool! We're done, this scheme works.
 \subsection{Realistic Hash Functions}
 
 The tricky thing here is that we've been assuming that we have these
-idealized has functions that distribute uniformly, and we can generate
+idealized hash functions that distribute uniformly, and we can generate
 them easily (and they're independent).
 What is it like in real life?
 
@@ -543,7 +572,7 @@ specify an element.
 This is probematic, because this description of a function is of 
 length $n^{10}\lg 10$ bits.
 
-The key thing to note here (that'll get us around this)is that pairwise 
+The key thing to note here (that'll get us around this) is that pairwise 
 independence is sufficient
 for the family of hash functions we use.
 What do we mean?
@@ -554,7 +583,7 @@ indices $i,j$, if the hash function $h$ is drawn uniformly at random
 from $\mathcal H$,
 then
 $$
-Pr(h(x) = i\,\,\&\,\, h(y) = j)
+Pr(h(x) = i, h(y) = j)
 =
 \frac{1}{B}
 $$
@@ -569,7 +598,7 @@ We were never interested in any more complicated conditions.
 We're interested in designing a family of functions mapping from
 $(10 \log_2 n)$-bit strings to $(\log_2 n)$-bit strings.
 
-We saw taht for analysis, we didn't need full independence, but just
+We saw that for analysis, we didn't need full independence, but just
 pairwise independence.
 This is because our analysis cared only about the number of pairwise collisions,
 which we can write as a sum of indicator variables $X_{ij}$, which is
@@ -704,7 +733,7 @@ we maximize the total prices for the pieces.
 
 When we cut the number up, we get a multiset of positive integers; in
 the language of number theory, this is a \emph{partition} of $n$.
-If the number of partitions of $n$ were sufficiently slow, we could just
+If the number of partitions of $n$ were sufficiently low, we could just
 generate them and calculate their value; however, the number of partitions
 grows superpolynomially.
 Consider the numbers
