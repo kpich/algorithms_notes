@@ -1706,6 +1706,269 @@ fine, just a side-product of the funny math going on.)
 
 
 
+\section{2/19/2013: Splay Trees}
+
+\subsection{Motivation, definition}
+
+Recall an ordinary Binary Search Tree. 
+There, we have the invariant that, at any subtree, the value of its root
+is $\geq$ any value in its LHS subtree and $<$ any element in its RHS subtree.
+Doing an inorder traversal gives us the elements in sorted order.
+
+The operations that we want to be able to insert are Find, Insert, and Delete.
+In general, these can be expensive: in the degenerate case, a BST can 
+devolve into a linked list, and Find/Insert/Delete can take linear time.
+That is, these operations are all $\Omega(n)$ worst case.
+
+We therefore consider various ``balanced'' binary search trees, like
+red-black trees or AVL trees.
+They're similar to BSTs, but various ``rotation'' operations are used to
+maintain $O(\log n)$ depth.
+A rotation is basically like picking up a tree by a node and rebalancing:
+swap a child and parent (and possibly move their subtrees), for example.
+These give find/insert/delete performance of $O(\log n)$ in the worst case.
+
+\textbf{Splay trees} give $O(\log n)$ amortized time for find/insert/delete.
+They don't give guarantees about individual operations like the balanced
+trees, but we get good total performance (that is, the total cost gives the
+same upper bound as what you'd get with a red/black tree, but individual 
+operations may be expensive).
+
+Splay trees will end up being fun because the working set gets moved
+to near the root of the tree, so we'll get something that's actually
+less than the log of the number of nodes, but instead log of the working
+set runtime (which will almost certainly be smaller).
+
+What is a splay tree?
+
+\begin{itemize}
+	\item
+	\textbf{Find}:
+	First, do an ordinary BST find, and then do a splay operation.
+	A \textbf{splay operations} is a sequence of \textbf{splay steps}.
+	There are three different kinds of splay steps:
+	\begin{enumerate}
+		\item
+			A standard rotation operation. Suppose we have $y$ the root.
+			Suppose $y$ has LHS child $x$ and RHS subtree $\gamma$.
+			Suppose $x$ has LHS/RHS children $\alpha, \beta$.
+			
+			We bring $x$ up to the root position, making $\alpha$ its LHS
+			subtree, $y$ its RHS child.
+			We make $y$'s LHS/RHS children $\beta,\gamma$.
+			Note $y$ must be the root.
+			
+			The symmetric case does the same.
+
+		\item
+			A ``zig-zag'' step.
+			Suppose we have some $z$, and $x$ is the right child of the
+			left child of $z$. Call the left child of $z$ $y$.
+			
+			What we do is put $x$ at the top, putting $y$ as its LHS
+			child, $z$ as its RHS child.
+			We move their subchildren appropriately ($x$'s left subtree
+			becomes $y$'s right; $x$'s ight subtree becomes $z$'s left.
+		\item
+			``Zig-zig''.
+			Supposeing we have $x$ the left child of $z$'s left child (which
+			is $y$).
+			Then we move $x$ to the top, putting $y$ on its right, and $z$
+			on $y$'s right (and moving the subtrees as appropriate).
+	\end{enumerate}
+	A splay operation at $x$, then repeatedly performs splay steps on $x$
+	until it is at the root.
+	If $x$ is a child of the root, then we do the first thing.
+	If $x$ is at least 2 levels away from the root, then we will land in
+	exactly one of the four above cases (the two symmetric cases of each of
+	zig-zig and zig-zag).
+	
+	Note that every one of the splay steps above retained the tree's BST 
+	property.
+	
+	If we have a successful find in the BST-find, we perform splay operations
+	to move the node to the root.
+	If we don't (that is, $x$ isn't in the tree), then it will have failed
+	at some node $y$; we splay $y$ up to the root.
+	
+	Why do we splay $y$ up in the case of a failure? Well, if there's a long
+	path, then, intuitively, we don't want to keep the long path around.
+	By splaying $y$ to the root, we'll eventually make the tree more shallow.
+	
+	\item
+	\textbf{Insert}: follow downward from the root, like you're doing a find.
+	Once you reach a point where you would branch into an empty subtree,
+	just insert it there.
+	We then splay the newly inserted item to the root.
+	That is, we again do the BST thing up to the root.
+	
+	\item
+	\textbf{Delete}: This one's a bit more hairy so we don't talk about it
+	here. Suffice it to say, we follow the same basic procedure---do a
+	classical BST operations, and then splay something up to the root
+	(the parent of the deleted thing, say).
+\end{itemize}
+
+
+\subsection{Amortized analysis of find}
+
+We give a potential function argument to argue that a series of find
+operations is amortized logarithmic.
+Defined the rank of $x$, denoted $r(x)$, as the floor of the base-2 log
+of the size of the subtree rooted at that node.
+Note that ``size'' here means ``number of nodes'', not ``height''.
+
+Define the potential $\Phi$ as $c\sum_x r(x)$, summing over all nodes $x$
+(we determine what we need $c$ to be later).
+
+We think of the amortized cost of splay-tree find as the amortized cost
+of phase A + the amortized cost of phase B (the former being the BST find,
+the latter being the splay operation).
+
+Assume that find reaches depth $d$ (with $0\leq d < n$).
+Then the amortized cost of phase A is the actual cost of phase 1 plus its
+change in potential, which is $c_0d + \Delta\Phi$ in phase 1; since phase
+1 didn't change the potential, $\Delta\Phi$ is 0, and our amortized cost
+is $c_0 d$ (for some constant $c_0$ bounding the cost that we
+spend in each level of the tree).
+
+The amortized cost of phase $B$ is $c_1 d + \Delta\Phi$ in phase 2.
+$c_1 d$ is the actual cost of the about-$d/2$ splay steps we need to perform.
+We must show that $\Delta\Phi$ in phase 2 $\leq (c_2\log n) - (c_0 + c_1)d$.
+That is, when we add up the amortized costs of A and B, we need to get
+at most some constant of $\log n$, so we need to wipe out the $c_0 d$ and
+$c_1 d$ terms present in the actual costs of the two steps.
+
+We examine the sum of potential changes due to the individual splay steps
+performed in phase 2.
+For a splay step at step $x$, define $r'(x)$ as the rank after the step,
+and $r(x)$ as the rank before.
+We'll focus on the two zig-zag steps; we perform at most 1 of the steps
+that occur at the root of the tree.
+
+How can we get at the change in potential of a zig-zag operation?
+Consider the third operation, zig-zig.
+Note that the potential doesn't change at almost every node in the tree.
+The only nodes where the contributions to the potential may have changed
+are the nodes $x$, $y$, and $z$ involved in the zig-zag.
+The chagne in $\Phi$ is
+$$
+c (r'(x) + r'(y) + r'(z) - (r(x) + r(y) + r(z)).)
+$$
+Note that $r'(x)$ and $r(z)$ cancel out---they're both sitting at the
+root of the tree.
+(The same reasoning holds for zig-zag.)
+
+We partition zig-zig and zig-zag steps into ``type A'' steps and ``type B''
+steps, and then look at what their sums of potential changes looks like.
+Type A steps are those where $r'(x) > r(x)$.
+\textbf{Claim}: the total change in potential due to type A splay steps is
+at most $c_3 \log_2 n$ (for some $c_3$).
+
+Consider again the change in potential:
+$$
+c (r'(y) + r'(z) - (r(x) + r(y))).
+$$
+We have that $r'(y)$ and $r'(z)$ are each at most $r'(x)$ (for some reason I don't understand); 
+we similarly have $r(y)$ and $r(x)$ being at most $r(x)$.
+So our change in potential is less than
+$$
+\leq 2c (r'(x) - r(x)).
+$$
+That is, the change in potential is upper-bounded by twice the increase
+in rank.
+
+Note the $r(x)$ is initially nonnegative, and it can never go below
+$\log_2(n)$.
+In fact, the final rank of $x$ is
+$$
+\lfloor \log_2 n\rfloor.
+$$
+
+Summing over all the type A steps (the ones that increase rank), what is an
+upper bound on the sum? 
+Well, it is at most $2\log_2 n$ (that is, we've proven the claim with $c_3 = 2$).
+(I am missing an important statement in here somewhere.)
+
+Intuitively, the case we're worried about is where we have a linear number
+of splay steps.
+What we've shown is that we can have at most a logarithmic number of these,
+since each of them causes an increase in rank.
+
+The vast majority of splay steps will be type B, where $r'(x) = r(x)$.
+This happens because we take the floor of $\log_2$; unless we get over
+a power of 2 (which doesn't happen much), the rank doesn't change.
+
+\textit{Claim}:
+each type B splay step gives a potential change $\leq -c$ (for some $c$).
+This is really the heart of the argument: we're relying on the type B
+steps to give us a large drop in potential.
+
+Recall the claim above that the change in potential is $\leq 2c(r'(x) - r(x))$.
+This isn't strong enough; in the type B case, this basically shows there is
+no increase in potential.
+What we really need to argue is that
+$$
+r'(x) + r'(z) - r(x) - r(y) \leq -1.
+$$
+Consider zig-zag.
+Suppose we have $z -> y -> x$; $x$ ihas subtrees $\beta,\gamma$; $y$ has LHS
+subtree $\alpha$; $z$ has RHS subtree $\delta$.
+Let $s$ be the total number of nodes in this subtree.
+Let $t$ be the number of nodes in the tree rooted at $x$ (that is, $x$ with
+$\beta$ and $\gamma$).
+We have that $t > s / 2$; if it were otherwise, then the rank
+at $x$ would have gone up in the element.
+
+Now, consider the thing after the zig-zag, rooted at $x$.
+Either $a$ or $b$ is < $s/2$ (otherwise there would be more than $s$
+elements in the tree rooted at $x$).
+Suppose that $a < s / 2$.
+Note either $r'(y) < r'(x)$ or $r'(z) < r'(x)$ (why?).
+That gives us that $r'(y) + r'(z) < 2r'(x)$ (why?).
+This gives us our desired result (why?).
+
+A similar line of reasoning can be applied to zig-zig.
+We have $z->y->x$, and we switch it to $x->y->z$, with initially
+$x$ the lhs of the lhs of $z$, and eventually $z$ the rhs of the rhs of $x$.
+
+Let the whole thing contain $s$ nodes; let $t$ be the size of $x$ with $\alpha,beta$ its subtrees.
+Now, we have the RHS-most subtree after the step ($z$ with the otehr subtrees)
+have strictly less than half of $s$.
+this ends up giving us that $r'(z) < r'(x)$ (recall $x$ ends up at
+the root of the resultant subtree, with LHS subtree $\alpha$ and
+rhs node $y$, with LHS subtree $\beta$ and rhs child $z$.
+
+
+(end proof of claim)
+
+We DO have to say something about the last step.
+It's pretty simple: basically, we show we don't get a massive explosion in
+potential with the operation; at worst, we get at most a logarithmic term.
+
+
+We have at most $\log_2 n$ Type A splay steps, out of about $d/2$ splay
+steps (since each gives us a bump up in rank of about 1).
+Thus, the number of type B splay steps has to be $\geq d/2 - \log_2 n$.
+Thus, the total type B drop is at least $cd/2 - c\log_2 n$; this is the claim
+we wanted to show above. That is, we can show that
+the drop in potential is $\leq c_2 \log n - (c_0 + c_1) d$.
+We get this by setting $c_2$ to $3c$, and choosing $c$ such that
+$c/2 = c_0 + c_1$.
+
+
+------------------------------
+
+For insertion and deletion , the argument ends up being very similar.
+Note inerstion is tricky: we potentially add anotehr element, and so
+every single node on its path might have its potential increased.
+A naive argument will give us an insertion perhaps increasing our potential
+by $\Theta(n)$; however, if we notice that adding a new node can only
+strictly increase the rank of a logarithmic number of nodes;
+you wander up to the root, and by the time you reach the top, you
+arrive at potential at most log $n$ (why???).
+
+
 
 
 
