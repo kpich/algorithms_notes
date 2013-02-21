@@ -1869,8 +1869,9 @@ Consider again the change in potential:
 $$
 c (r'(y) + r'(z) - (r(x) + r(y))).
 $$
-We have that $r'(y)$ and $r'(z)$ are each at most $r'(x)$ (for some reason I don't understand); 
-we similarly have $r(y)$ and $r(x)$ being at most $r(x)$.
+We have that $r'(y)$ and $r'(z)$ are each at most $r'(x)$ ($x$ is at the
+top of the subtree after the operation); 
+we similarly have $r(y)$ and $r(x)$ being at most $r(z)$.
 So our change in potential is less than
 $$
 \leq 2c (r'(x) - r(x)).
@@ -1880,7 +1881,7 @@ in rank.
 
 Note the $r(x)$ is initially nonnegative, and it can never go below
 $\log_2(n)$.
-In fact, the final rank of $x$ is
+In fact, the final rank of $x$ is (upper-bounded by)
 $$
 \lfloor \log_2 n\rfloor.
 $$
@@ -1921,7 +1922,7 @@ We have that $t > s / 2$; if it were otherwise, then the rank
 at $x$ would have gone up in the element.
 
 Now, consider the thing after the zig-zag, rooted at $x$.
-Either $a$ or $b$ is < $s/2$ (otherwise there would be more than $s$
+Either $a$ or $b$ is $< s/2$ (otherwise there would be more than $s$
 elements in the tree rooted at $x$).
 Suppose that $a < s / 2$.
 Note either $r'(y) < r'(x)$ or $r'(z) < r'(x)$ (why?).
@@ -1932,7 +1933,7 @@ A similar line of reasoning can be applied to zig-zig.
 We have $z->y->x$, and we switch it to $x->y->z$, with initially
 $x$ the lhs of the lhs of $z$, and eventually $z$ the rhs of the rhs of $x$.
 
-Let the whole thing contain $s$ nodes; let $t$ be the size of $x$ with $\alpha,beta$ its subtrees.
+Let the whole thing contain $s$ nodes; let $t$ be the size of $x$ with $\alpha,\beta$ its subtrees.
 Now, we have the RHS-most subtree after the step ($z$ with the otehr subtrees)
 have strictly less than half of $s$.
 this ends up giving us that $r'(z) < r'(x)$ (recall $x$ ends up at
