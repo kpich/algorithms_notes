@@ -1973,6 +1973,203 @@ arrive at potential at most log $n$ (why???).
 
 
 
+\section{2/21/2013: Augmented Binary Search Trees}
+
+\subsection{Example 1: Dynamic Order Statistics}
+
+Simple technique, fairly widely applicable.
+
+If you have a dynamic set of items drawn from some ordered universe, we
+can use Red-Black trees or AVL trees or something like that to get
+logarithmic time for insert/delete/find.
+However, sometimes we want one or more additional operations, typically
+more specialized, and we want logarithmic performance.
+Instead of just starting from scratch, we can frequently just augment
+a standard balanced search tree (e.g.\ red/black tree).
+
+As a simple example, consider the problem of ``dynamic order statistics''.
+Suppose we have a dynamic collection of elements, but from time to time
+we'll want to run SELECT($k$) queries, which returns the $k$th highest
+element in the set.
+If we just use a red-black tree, we can't do this efficiently---we'd have
+to do an in-order traversal to figure out where in the tree we want to be,
+and that would take linear time.
+However, we would like to get logarithmic time for this.
+
+We can do so by augmenting a red/black tree in such
+a way (adding extra fields) that will be helpful for this.
+We maintain a size field at each node, which is kept equal
+to the number of nodes in the corresponding subtree.
+We'll need to work out exactly how to easily maintain this field, but it
+ends up being possible.
+
+We'll have some size $k_0$ at the root.
+Say $k$ (the query value) goes from $1$ up to $n$.
+Call $k_1$ the size field of the root's left child (if there is no left
+child, then the value is 0).
+If the rank we want is $k_1 + 1$, then we return the value at that node.
+If we want a rank that's less than that, we recurse into the left tree's
+subtree.
+If we want a query of rank greater than $k_1 + 1$, we recursively search in
+the root's right subtree, with $k' = k - (k_1 + 1)$.
+
+Note we never descend into both sides of any subtree; since a red-black tree
+has depth $O(\log n)$, we will spend logarithmic time on the query.
+
+\subsection{Augmentation Theorem}
+
+We have the following \textbf{augmentation theorem}, which is proved
+in CLRS (chpt 14).
+Suppose the auxiliary fields of a node $x$ can be computed in constant time
+given the elements in $x$ and the auxiliary+element fields of its children 
+(that is, we can compute the auxiliary info for a node, given all the info
+present in its children, and the original, non-auxiliary info at that node).
+Then we can maintain these auxiliary fields, while achieving logarithmic
+performance on a red-black tree for insert/delete/find.
+
+We give a sketch of a proof of this.
+We need to show that we can augment the code for insert/delete/find
+in such a way that we maintain logarithmic time.
+For find, we don't modify any auxiliary fields, so the performance is
+trivially the same.
+Now, insertion.
+Recall that red/black tree insertion just performs a typical BST insert
+(putting the new value as a leaf); in the second phase, we perform a
+constant number of rotations.
+In the first phase, we may have to percolate information up to the root,
+but since the tree is balanced, that will take logarithmic time.
+In the second phase, we may have to propagate a change up to the root again.
+Again, this is at worst $O(\log n)$.
+
+This argument doesn't apply to something like AVL trees, where you might do
+a logarithmic number of rotations on insertion. However, we can amend 
+the argument---you won't be doing rotations anywhere in the tree; all of them
+will be along a path to the root, and so you can prove that there is still
+only a logarithmic amount of extra work done.
+
+The argument for deletion on red-black trees is very similar.
+
+
+
+
+\subsection{Example 2: Finding an overlapping interval}
+
+Suppose elements in our dynamic sets are intervals $(a,b)$ where $a\leq b$.
+We want to support an operation OVERLAP($a_0, b_0$) (representing the
+inclusive interval $[a_0,b_0]$), that either
+finds an overlapping interval in our dynamic set, or reports correctly
+that there is no such interval. How do we augment the tree?
+
+We sort the intervals by left endpoint in the red-black tree.
+For example, suppose we have a root with two kids. Root has $a_1,b_1$;
+the LHS kid has $a_0,b_0$, and the RHS child has $a_2,b_2$.
+Suppose we have the query $(a,b)$; what do we need to augment the tree with?
+
+Suppose that OVERLAP($a,b$) happens to overlap the root. Then we're done.
+If it doesn't, however, we want to query at most one of the two children.
+If $a$ is between $a_1$ and $b_1$, we're done. We're left, then,
+with the two cases of $a < a_1$ and $a > b_1$.
+
+Suppose $a > b_1$.
+If the maximal right endpoint of any interval
+in the LHS subtree is greater than $a$, then we have an overlap; if it's
+less than $a$, then every interval in the LHS subtree is guaranteed to fall 
+completely
+to the left of $a$, and therefore there will not be any overlap.
+
+We therefore say that our auxiliary field can be the max $b$-value in a 
+subtree. 
+If we have that, we can compare $a$ to the max $b$-value of the LHS tree
+(assuming $a > b_1$); we can therefore recurse to the right, since we
+know that there is no possibility of finding an overlapping interval to the 
+left.
+
+
+Suppose now that $a < a_1$.
+Then we want to know what $b$ looks like.
+If $b > a_1$, then we've found an overlapping interval.
+If, on the other hand $b < a_1$, we know that it's not possible
+that we get any intersection with any of the intervals in the right subtree
+(since the tree is sorted by $a$ value).
+We can therefore recurse left.
+
+
+
+\subsection{Example 3: Finding $(x,y)$ with $x > x_0$ and largest $y$}
+
+Say our elements are arbitrary $(x,y)$ pairs in an ordered universe.
+Given a query $x_0$, we want to compute an element $(x,y)$ with
+maximum $y$-value over all elements with $x$-value $\geq x_0$.
+For example, the $x$'s could be release times, and the $y$ could be values;
+we'd then be looking for the highest-value object after a certain release
+time.
+
+Looking at it, it's not obvious if we want to sort by $x$ or by $y$.
+It turns out you can get pretty nice solutions either way.
+
+\textbf{Solution 1}: Sort by $y$-value.
+Say we have a tree with root $x_1,y_1$, LHS child $x_0,y_0$, and
+RHS child $x_2, y_2$.
+We're given a query with argument $x$.
+
+We want to branch to the right whenever possible (we're trying to maximize $y$).
+The only time we don't want to do that is when we can prove there are no
+useful points to the right. When does this happen? Exactly when all of the
+$x$ values in the RHS subtree are too small.
+We can determine this efficiently if we keep around the maximum $x$-value 
+of a subtree as an auxiliary component.
+
+When we query on $x$, we look at the RHS node's max $x$ value. If it's
+not big enough, then we know there is no point in going that way.
+We can then check if the node's value itself is acceptable (in which case
+we return the root).
+Otherwise, we branch left.
+
+
+
+\textbf{Solution 2}: Sort by $x$-value.
+We need to perform two passes.
+The first pass determines the $y$ value; the second determines $(x,y)$.
+The auxiliary field will be the max $y$-value.
+
+What we want to do to find the max $y$ value is the following.
+Supposing we're at the root, with a query $x$,
+we check to see if $x > x_1$.
+If so, then that node's acceptable, and all RHS tree nodes are acceptable.
+We can branch left, then, but remember the highest $y$ value in the root
+or in the RHS subtree (we do that by taking the max of the auxiliary fields
+in the root and the RHS node).
+We then recurse to the LHS subtree.
+If $x_1 < x$, then we know that we must branch to the left---neither the
+root nor the LHS subtree contain any feasible nodes.
+
+We thus come to know the $y$ value we're seeking, and it's not too tough
+to figure out where to find the $x$ value (what? how?)
+
+
+
+\subsection{Example 4: Sum all $y$ values from $(x,y)$ pairs with 
+		    $a\leq x \leq b$}
+
+Suppose we have pairs $(x,y)$ at nodes, and the query is $(a,b)$.
+We want to determine the sum of the $y$-values of all elements $(x,y)$
+such that $a \leq x \leq b$.
+We sort the $(x,y)$ pairs on $x$, breaking ties arbitrarily.
+Our auxiliary value is the sum of $y$-values in the subtree.
+
+We give a two-pass solution.
+First, we traverse the find-$a$ path (that is, run a BST find on $a$), 
+computing the sum of all the
+$y$-values of all the points with $x$-value at least $a$ (we can
+add up subtree sum values).
+Second, we find the sum of the $y$-values of all points $\geq b$.
+We can just subtract the latter from the former, then.
+
+
+
+
+
+
 
 
 
