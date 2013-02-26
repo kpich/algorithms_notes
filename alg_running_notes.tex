@@ -2165,6 +2165,236 @@ add up subtree sum values).
 Second, we find the sum of the $y$-values of all points $\geq b$.
 We can just subtract the latter from the former, then.
 
+\subsection{CORRECTION}
+
+In order to be able to support find efficiently, in the above, we're actually
+going to need to sort on lexicographic order on the $(x,y)$ pairs (that is,
+break ties on the second field).
+Imagine the pathological case of a tree with all $x$ values the same, for
+example.
+
+
+\section{Van Emde Boas Trees}
+
+(This is Chapter 20 in the 3rd edition of CLRS.)
+
+A Van Emde Boas tree is a data structure that can substantially outperform
+red-black trees in some situation.
+Following the text, we want to support an operation MEMBER (return 1 if
+key in set, 0 otherwise); we won't be talking about auxiliary data today,
+but we could store auxiliary data, and modify FIND to return a pointer to it.
+We also have MINIMUM; MAXIMUM; SUCCESSOR; PREDECESSOR;
+INSERT; DELETE.
+
+We'll make a set of restrictive assumptions about our keys so as to be able to 
+get sublogarithmic time on our operations.
+In particular, we assume the integers are drawn from a set $\{0,\ldots,u-1\}$.
+We'll eventually get $O(\log\log u)$ time for all operations (in fact,
+min and max will be $O(1)$).
+
+First, note the simple naive bit-array version: Represent a set as a list of
+$u$ bits. Then
+MEMBER, INSERT, DELETE are all $O(1)$.
+However, finding the SUCCESSOR is $O(u)$ (we could have to examine many bits
+before finding a 1).
+Similarly with PREDESSOR, MIN, and MAX.
+
+A variation of the above would be to superimpose a binary stree structure
+on the bit vector: We could store a $\log u$ binary tree, where
+an intermediate node of value 0 means ``there are no leaf nodes with 1 below
+this node''.
+This gives us $O(\log u)$ SUCCESSOR, PREDECESSOR, MIN, and MAX; however, 
+your other operations won't be $O(1)$ any more.
+However, this doesn't really give us much over a red-black tree, which
+already gave us $\log n$ time, rather than $\log u$ time.
+
+Another variation could be to use a $k$-ary tree, for example a
+$\sqrt u$-ary tree.
+This would give is OK time (figure out what it would be).
+
+We'll use a branching factor proportional to the size of a subtree.
+So at the top, there are $u$ leaves; we create $\sqrt u$ child nodes
+at the root.
+Each child has $\sqrt u$ nodes; we give each of them $u^{1/4}$ children;
+since there are $u^{1/2}$ of them, there will be $u^{3/4}$ nodes at
+that level.
+The depth of this tree is $O(\log\log u)$.
+We get this because at each level there are $u^{1/(2^i)}$ nodes (FLESH
+OUT THIS A BIT MORE).
+
+\subsection{Proto Van Emde Boas trees}
+
+Following CLRS, for pedagogical purposes, we first introduce a version of 
+van Emde Boas trees that won't work out for us.
+
+A size $u$ node will have $\sqrt u$ children, each of them built in
+the same way (as above).
+However, we also have a summary of size $\sqrt u$ at the node---since
+we already have children of size $\sqrt u$, this won't change the size of the 
+trees in big-$O$ terms.
+The summary will look like the following.
+We are taking care of a subset $0,\ldots,u-1$.
+We imagine chunking this up into blocks of size $\sqrt u$.
+The first such one will be bits $0,\ldots,\sqrt u - 1$ (Call this cluster 0).
+Cluster 1 will be the next $\sqrt u$ bits.
+We continue this way up to cluster number $\sqrt u - 1$.
+Our summary will have a bit for each cluster, which is just the bitwise-or
+of all the bits in a cluster (that is, the semantics are ``is at least
+one bit in the cluster a 1?'').
+
+We use the following notation from the text: when we're at a node with size 
+$u$, the value $x$ in the query (for example, MEMBER), will be a $\log u$-bit
+value.
+We use $HIGH(x)$ to refer to the most significant $(\log u) / 2$ bits, 
+and $LOW(x)$ to refer to the least significant $(\log u) / 2$ bits.
+The HIGH bits will tell us what cluster to go into, and the LOW bits
+will tell us the element in the set determined by the HIGH bits.
+
+
+
+
+At a node, doing an operation, we'll use the summary to skip clusters that
+we know have no bits in them.
+Supposing we're using $u = 2^{16}$, at the root node we'll have $2^8$ clusters,
+and the summary is a representation of the integers $0,\ldots,255$; if $i$
+is in this set, then the $i$th cluster has at least one number in it.
+Note that each of the honest-to-god children is also representing a subset
+of the integers $0$ through $255$ (that is, $0$ through $2^8$, representing
+the range of LOW bits).
+So the summary child looks just like the other children.
+
+At the next level, clearly we'll look the same: each node has $2^4$ children
+nodes and summary of $2^4$ bits.
+
+How does MIN work? The natural way is to recursively ask the summary
+what its MIN is; supposing that the summary's MIN is 17, then we know
+that we can ignore clusters $0$ through $16$, and we can recursively
+ask cluster $17$ its MIN.
+WE have made 2 recursive calls on data structures of size $\sqrt u$ to get
+the answer of a structure of size $u$.
+This gives us the following recurrence for MIN with proto-VEB trees:
+\begin{equation}
+T(u) \leq 2 T(\sqrt u) + O(1).
+\label{eq:veb1}
+\end{equation}
+
+We also have the notation $INDEX(HIGH(x), LOW(x))$; when we recursively
+get an answer from a child, we need to concatenate two half-words together.
+So if we recursively get an answer at cluster $k$, and $k$ returns $\ell$, then
+our answer will actually be the concatenation of the high bits $k$ and the 
+lower bits $\ell$. The book denotes this as $INDEX(HIGH(x), LOW(x))$ or 
+something.
+
+Unfortulately, unfolding recurrence \eqref{eq:veb1} gives us
+$$
+O(2^{\log\log u}) = O(\log u)
+$$
+as its runtime (if we'd had $T(n) \leq T(\sqrt u) + O(1)$ instead, THEN
+we'd get $O(\log\log u)$).
+So we'll have to change our data structure to get us the desired behavior
+(in particular, we'll want to change the 2 coefficient, corersponding
+to the 2 MIN calls made, into a 1).
+
+Similarly, what does SUCCESSOR$(x)$ look like? 
+First, we look in HIGH($x$). If we found a successor there, we're in luck.
+However, if HIGH($x$) is empty, then we'll have to look at the next cluster
+to the right that has anything in it. So we'll need to make a recursive
+call to the summary node, and find the MIN element in that (which we
+already looked at).
+So we'd get
+\begin{equation}
+T(n) \leq 2 T(\sqrt u) + O(\log u)
+\end{equation}
+the $O(\log u)$ is from the MIN call.
+This ends up being $O(\log u \log\log u)$, which is again not really
+what we want.
+
+Consider now INSERT on the proto-VEB trees. What do we do? 
+We insert LOW($x)$ into cluster $HIGH(x)$.
+If we're unlucky, the cluster HIGH($x$) was empty before, and we'll
+need to insert into the summary node the fact that the cluster is now
+nonempty.
+That gives us
+$$
+T(n) \leq 2 T(\sqrt u) + O(1)
+$$
+which is $O(\log u)$.
+
+Note that I think MEMBER is still $O(\log\log u)$ here.
+
+\subsection{Van Emde Boas Trees: fixing things up}
+
+\subsubsection{A Modification}
+
+What we need to do is patch things so that we don't need the second recursive
+call.
+What we do, intuitively, is change things so that we have two cases: an
+easy case and a hard case.
+We'll have good behavior in the easy case, and kind bad behavior in the
+hard case; when we need two operations, then, we'll rig things so that
+only one of them is ``hard''.
+
+We'll maintain a MIN and MAX at each node (setting them to Nil if there are
+no elements).
+Note that, at a node, the Minimum element is not represented below.
+
+\subsubsection{An Example}
+
+As an example, suppose our set is $\{2,3,4,5,7,14,15\}$; then $u = 2^{2^2} = 16$.
+At the root, MIN=2 and MAX=15; we won't keep the 2 in its children.
+
+The root has 4 children and the summary.
+The 4 clusters are $0-3, 4-7, 8-11, 12-15$ (clusters 0 through 3).
+Node 0 has $u=4$; it has to represent the elements from $0-3$, except
+for the min (and is therefore really a representation of the set $\{3\}$.
+Cluster 1 is suppoesd to keep track of the ints between $4$ and $7$.
+Since it only cares about the lower-order bits, $4$ gets mapped to $0$; 
+$5$ to $1$, and so on.
+So it has the set $\{4,5,7\}$, which is represented as $\{0,1,3\}$.
+The parent node, when it gets an answer from cluster 1, will add 4 to
+the result, since it knows it's cluster 1.
+And so on.
+
+The summary has $\{0,1,3\}$, since clusters 0,1, and 3 are nonempty, while
+cluster 2 is empty.
+
+We have similar tree structures for each of the above-mentioned subtrees.
+Each child has 2 clusters (of size 2) and 1 summary; each cluster has
+size 2, representing a subset $\{0,1\}$.
+Recall the MIN of any node is not stored in its subtree.
+
+\subsubsection{Performance}
+
+Trivially MIN and MAX are $O(1)$ (they're both stored directly at the root).
+MEMBER does the following: if the value you're looking for is equal to
+MIN or MAX, then you know it's in the set.
+Otherwise, split $x$ into HIGH($x)$ and LOW($x$) in constant time; we ask
+cluster HIGH($x$) if LOW($x$) is a member of it; that'll give us
+$O(\log\log u)$ time.
+
+A bit tricker is SUCCESSOR.
+We have the trivial cases with $u=2$ (resolvable in constant time), or
+SUCC = MIN,
+in which case we can immediately return the MIN (Note that the successor
+is defined as the smallest value in the set that is greater than the
+query integer $x$. FLESH THIS OUT).
+We want to show that we can now get away with a single general recursive
+call.
+
+What we do first is find MAX-LOW: find the maximimum value in
+cluster HIGH($x$).
+If MAX-LOW $\neq$ NIL and $LOW(x) < MAX-LOW$, then we know that our answer
+must be within cluster HIGH($x$), and we can just find the successor
+of LOW($x$) inside the cluster HIGH($x$), then build the answer (which is
+HIGH($x$) concatenated with the answer we got before).
+If, on the other hand, either there's nothing in that cluster or the answer
+is in a higher cluster, then we have the same problem we had
+before: we look for the successor of HIGH($x$) in summary (that is, find the
+next nonempty cluster to the right). This is $T(\sqrt u)$.
+Then we get the answer as the MIN value in the successor cluster (formally,
+that concatenated with the successor).
+
+WHY DON'T WE KEEP THE MIN?
 
 
 
