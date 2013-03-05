@@ -7,6 +7,8 @@
 
 \usepackage{amsmath,amssymb}
 
+\usepackage{algorithm,algpseudocode}
+
 
 \newcommand{\inv}{^{-1}}
 \newcommand{\Z}{\mathbb{Z}}
@@ -2181,8 +2183,11 @@ example.
 A Van Emde Boas tree is a data structure that can substantially outperform
 red-black trees in some situation.
 Following the text, we want to support an operation MEMBER (return 1 if
-key in set, 0 otherwise); we won't be talking about auxiliary data today,
-but we could store auxiliary data, and modify FIND to return a pointer to it.
+key in set, 0 otherwise); we won't be considering auxiliary data,
+but we could perhaps also store auxiliary data, and modify FIND to return a 
+pointer to it.
+That is, we're building something that does set membership, rather than
+an efficient map.
 We also have MINIMUM; MAXIMUM; SUCCESSOR; PREDECESSOR;
 INSERT; DELETE.
 
@@ -2203,8 +2208,8 @@ A variation of the above would be to superimpose a binary stree structure
 on the bit vector: We could store a $\log u$ binary tree, where
 an intermediate node of value 0 means ``there are no leaf nodes with 1 below
 this node''.
-This gives us $O(\log u)$ SUCCESSOR, PREDECESSOR, MIN, and MAX; however, 
-your other operations won't be $O(1)$ any more.
+This gives us $O(\log u)$ SUCCESSOR, PREDECESSOR, MIN, and MAX, but
+the other operations won't be $O(1)$ any more.
 However, this doesn't really give us much over a red-black tree, which
 already gave us $\log n$ time, rather than $\log u$ time.
 
@@ -2395,6 +2400,276 @@ Then we get the answer as the MIN value in the successor cluster (formally,
 that concatenated with the successor).
 
 WHY DON'T WE KEEP THE MIN?
+
+
+For the code of INSERT and DELETE, consult chpt 20 of CLRS.
+
+
+
+\section{2/28/2013: Union Find}
+
+Here, we'll get something growing much more slowly than even $O(\log\log u)$;
+in fact, we'll get an inverse Ackermann-growing function.
+
+The problem of Union-find is the following.
+Suppose we want to maintain a dynamic collection of disjoint sets.
+Initially, we have no sets.
+WE have an operation called MAKESET$(x)$, taking an elemennt from some
+universe, and creates the singeton set $\{x\}$ (we require that the element
+$x$ not already be in some element in our collection---we require
+disjoint sets).
+Further, we have an operation UNION$(x,y)$, which merges the sets
+containing $x,y$; that is, there should be a set in our collection with $x$,
+and one with $y$; after the call, we'll remove the set containing $x$, remove
+the set containing $y$, and then insert the union of those two sets.
+Finally, we have FIND$(x)$, which returns the ``name'' of the set
+containing $x$ (we require that $x$ be an element in some set in the data
+structure already).
+It doesn't really matter what this ``name'' is; we only require that
+$x,y$ are in the same set iff FIND$(x) =$ FIND$(y)$.
+
+
+Tarjan discovered the following union-find data structure, which uses
+trees to represent each of the sets.
+Each element of a set is a node in a tree; each element has a pointer
+pointing to its parent (there are only upward-pointing arrows in the tree).
+For any node, we simply follow the upwards parent-pointers until we get
+to the root.
+Note there are many possible representations of a set; all we require
+is that it be a tree.
+The naming convention will be to return the root element as the name
+of a set.
+
+Note that on a find call, we're given directly the node in the tree;
+we don't have to look around in different trees to find an element.
+
+If we want to do a UNION on two elements in the same set, we don't need
+to do anything. If they're in different trees, we do the following:
+make one of the root nodes a child of the root of the other one.
+Following CLRS, define LINK$(T,T')$ as an operation taking as arguments two
+roots of trees; this operation makes one of them point to the other (that is,
+one of the roots is a child of the other root).
+
+Given what we've defined, we can imagine degenerate cases with bad behavior.
+In order to get around these, we have two tricks.
+
+
+First, we have \textbf{path compression}.
+Whenever we do a FIND, we traverse the ``find path''---the path from the
+found node to the root.
+With path compression, we retraverse the path a second time, and make
+everything point directly to the root.
+That is, if we traverse a path of length 100 to get to the root, we make
+99 elements that didn't used to point to the root point directly at it.
+Subsequently, FIND on any of those elements will be very cheap (assuming
+we haven't done too many intermediate UNION operations).
+This gives us pertty good performance by itself.
+
+
+Second, we have \textbf{union by rank}.
+With this operation, we'll be able to almost get amortized $O(m)$ time of any
+sequence of $m$ operations.
+In fact, what we'll get instead is $m$ operations taking $O(m\alpha(m))$
+time, with $m$ the number of MAKESET calls, and $\alpha$ the inverse 
+Ackermann function; however, the latter is very very slow.
+
+Anyways, back to \textbf{Union by Rank}: if you have a huge structure
+and a tiny one, it'll be better to make the tiny structure
+a child of the large one.
+Intuitively, if we make the large structure a child of the small one, then
+we would increment the depth of a whole bunch of nodes; if we make the
+small one a child of the large one, we only increment the depth of a
+small number of nodes.
+
+Instead of making this decision by size, we'll make it by \textbf{rank}, which is a
+proxy to size, which will end up giving us the same optimal bounds.
+Rank is a nonnegative integer.
+When we do MAKESET, initialize the element's rank to 0.
+A FIND has no impact on rank;
+when we call LINK$(x,y)$; if $x$ has rank $r$ and $y$ has rank $r'$, and 
+assuming wlog that $r \geq r'$, then we make $y$ a child of $x$.
+If $r > r'$, then there is no change in the rank of $x$; if $r=r'$, then
+we increment the rank of $x$.
+That is, regardless of the structure of the tree, if we link two trees with
+the same rank, then the rank is the previous rank plus 1; otherwise, the
+rank is what it was beforehand.
+
+A side note: you can show pretty easily that the $r(x) \leq \log_2 n$, with
+$n$ the size of the subtree rooted at $x$; further, the depth of the 
+tree rooted at $x$ is at most the rank of $x$.
+This can be shown by induction on the tree size.
+
+Now, the Ackermann function will look as follows:
+\begin{align}
+A_0(j) &= j + 1 \\
+A_1(j) &=
+	2j + 1 \\
+A_2(j) &=
+	2^{j+1}(j+1) - 1 \\
+A_3(j) &= 2 ! j
+\end{align}
+where $2 ! j$ is a tower of repeatedly exponentiated $2$'s (that's notation
+people use, right?).
+I can't type $A_4$, but it's a tower of 2's, whose height is a tower of 2's,
+whose height is a tower of 2's, and so on.
+The functional inverse of doubling is halving, and the functional
+inverse of exponentiation is $\log$, and the functional inverse of the
+tower is $\log^\star$, which is something or other (I dunno).
+
+Define $\alpha(n)$ as the minumum $k$ such that $A_k(1) \geq n$.
+Note the real function used in Tarjan's paper is a bit more complicated (it's
+the Ackermann function with two arguments).
+
+Formally,
+\begin{align}
+A_0(j) &=
+j + 1 \\
+A_k(j) &=
+A_{k-1}^{(j+1)}(j)
+\end{align}
+where $A_k^{(j)}$ is $A_k$ iterated $j$ times.
+
+We'll see that the running time of $m$ operations is $O(m\alpha(n))$, with 
+$n$ the number of MAKESETs.
+Note LINK is constant-time worst-case, MAKESET is constant time.
+The difficulty is in FIND---we can have a long path to the root, but we'll
+want to show that this doesn't happen too often.
+
+We'll use a cleverly-defined potential function to argue that the amortized
+cost of each FIND is $O(\alpha(n))$.
+NOte that LINK will still have amortized $O(\alpha(n))$, even though it's
+worst-case cosntant time (because it can potentially increase the potential).
+When we do a FIND, we'll want to argue that the potential function drops
+in such a way that it basically entirely offsets the cost of traversing
+the path to the root.
+Since we pay 1 unit of actual cost going up a step in the path, we'll need
+our potential go down 1; there will be $\alpha(n)$ nodes in the path in which
+we can't make that argument, so we'll have to pay the unit cost at each of
+those nodes.
+
+The overall potential $\Phi$ will be
+$$
+\Phi = \sum_x \phi(x)
+$$
+with $x$ ranging over all nodes in the data structure, and $\phi(x)$ being
+$$
+\phi(x) = r(x) (\alpha(x) - LEVEL(x)) - ITER(x)
+$$
+where $LEVEL(x)$ is the following: for a node $x$, we look at the
+rank of the parent of $x$, defined as $r'$; if $r'$ is much bigger than
+$x$, we'll ahve a high LEVEL, otherwise we'll have a low LEVEL (intuitively,
+it will encode ``how much higher a parent's rank is than yours'').
+Precisely, defining $r'(x)$ as the rank of $x$'s parent,
+$LEVEL(x)$ is the smallest $k$ such that $A_k(r(x)) \geq r'(x)$.
+Note that for any non-root $x$, we have that $r(x) < r(p(x))$ (with $p(x)$ the
+parent of $x$) (it is somewhat easy to convince yourself of this).
+So the question is, roughly, ``how much higher'' is your parent's rank than
+yours?
+Note that LEVEL will almost always be really small.
+
+Below, we abbreviate $LEVEL(x)$ as $\ell(x)$ and $ITER(x)$ as $i(x)$.
+
+LEVEL is a primary measure of how much higher a parent's rank is than yours.
+ITER is a secondary one.
+$ITER(x)$ is the largest $k$ such that 
+$$A_{\ell(x)}^{(k)}(r(x)) \leq r(\phi(x))$$
+with $A_{\ell(x)}^{(k)}$ denoting $k$ successive applications of the
+Ackermann function $A_{\ell(x)}$ (and with $\ell(x)$ the LEVEL function).
+$\phi(x)$ is 
+$$r(x) (\alpha(n) - \ell(x)) - i(x)$$ 
+for a nonroot
+$x$ with $r(x) > 0$;
+and $r(x)\alpha(n)$ otherwise.
+
+Note some properties of $\ell(x)$: first, $0\leq \ell(x) < \alpha(n)$.
+I'm not quite exactly sure why this is, but I think it's basically just an
+application of the definition of LEVEL.
+SEcond, the level of a node cannot decrease.
+We might get a new parent after path compression; however, since the 
+rank of the parent of $x$ cannot decrease under any operation, and the
+rank of a parent is always larger than its kids, then the rank
+of a parent will only stay the same or increase.
+
+Note the following tow properties about $i(x)$. First, while $\ell(x)$
+does not change, $i(x)$ cannot decrease either.
+This follows from a similar line of reasoning for why $\ell(x)$ cannot 
+increase,
+I think (but I'm not sure).
+Second, $1\leq i(x) \leq r(x)$. To show thise, we use contradiction.
+Suppose $i(x) \geq r(x) + 1$.
+Note that
+$$
+A_{\ell(x)}^{r(x) + 1}(r(x)) \leq A_{\ell(x)}^{i(x)}(r(x))
+\leq
+r(p(x))
+$$
+for some reason; further, the LHS-most term in athe above is equal to
+$$
+A_{\ell(x) + 1}(r(x))
+$$
+This is a contradiction for some reason I don't understand at all.
+
+Heading back, note that $\phi(x) \geq 0$ for every $x$ (why?), so our
+potential $\Phi$ is positive; further, $\Phi = 0$ initially.
+
+
+Let's look now at the amortized cost of a FIND operation.
+WE could have some sort of really long FIND path (linear in $m$, say); we'll
+want to show that the amortized cost is $O(\alpha(n))$.
+We'll need to offset that cost with a corresponding drop in potential.
+Why would this happen?
+Intuitively, for a whole lot of nodes, the comparative rank of the nodes'
+new parents will be higher than their old parents'.
+
+WE get through some convoluted argument that, for any node $x$, the drop in 
+potential given by that node is at least 1. I couldn't follow the argument
+because I am sick and can't focus on anything. It seems like
+the argument is probably laid out in CLRS though.
+
+At the end of the day, the total amortized cost of a FIND is
+$O($number of nodes $x$ on the FIND path
+for which $\phi(x)$ is unchanged$)$, that is, for which
+$\ell(x)$ and $i(x)$ are unchanged; those nodes contribute 0 to the
+total cost, whereas the other nodes cancel out the unit amount of work
+needed to visit/move that node.
+
+How on earth can we upper-bound that number?
+Well, suppose we have a bunch of level 7  nodes, say.
+Then for every node except possibly the topmost one, we can be sure
+that the level will drop.
+Why?
+well $\phi(x) \geq A_7^{(12)}(r(x))$ but less than $A_7^{(13)}(r(x))$.
+Then consider every level 7 node except for the topmost one; each of these
+leapfrogs someone of the same level, and something interesteing happens there.
+or whatever, jesus i have no idea.
+
+More concretely, suppose we have three rank-7 nodes $a,b,c$, with 
+$a$ the furthest from the root, $b$ the closest; they're along a path.
+Now, calling $y$ the new root, we have
+\begin{align*}
+	r(y) &\geq r(c) \\
+&	\geq A_7(r(b)) \\
+	&\geq A_7(A_7^{(12)}(r(x))) \\
+	&= A_7^{(13)}(r(x)) \\
+\end{align*}
+and I have no idea what this means, but apparently it gives us some
+insight as to why only the topmost level-7 node might be problematic.
+This, further, supplies the insight for why the prose-language expression
+inside the big-$O$ above is $\leq\alpha(n)$.
+
+WE need also think about the amortized cost of a LINK operation.
+Supposing we link $x$ and $y$ with $r(x) \leq r(y)$, then $\phi(x)$ cannot
+increase, but $\phi(y)$ could increase, I think by $\alpha(n)$ for some
+reason.
+Oh, I think it's entirely due to a possible increase in potential, and has
+nothing to do with cost.
+This still gives us what we want, though.
+
+
+
+\section{Basic Graph Algorithms}
+
+\subsection{Directed Graph Traversal}
 
 
 
