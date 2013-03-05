@@ -2671,6 +2671,60 @@ This still gives us what we want, though.
 
 \subsection{Directed Graph Traversal}
 
+Depth-first search and Breadth-first search are defined for both directed
+and undirected cases.
+The directed case is just a more general case: replace each undirected
+arc with two directed ones.
+We consider directed search then.
+
+So DFS is $O(|V| + |E|)$ time to visit all nodes and vertices; in this context,
+that's a linear-time algorithm, and the best we could hope for.
+To choose a particular DFS, we must choose an arbitrary ordering of vertices 
+and an arbitrary ordering of the edges leaving each vertex.
+
+In addition to visiting everything, a DFS classifies each edge
+as a tree, back, cross, or forward edge. Note that these aren't inherent
+properties of edges; different edges will be different types depending
+on the ordering used to do the DFS.
+These are useful because, for example, a digraph $G$ contains
+a cycle iff any DFS of $G$ contains a back edge.
+
+The tree edges yield arborescences: tree-like structures where the edges
+are all directed away from the root.
+Suppose we start a DFS at some node. If we haven't seen a node, we'll
+make a recursive call to DFS, which must complete before we reach
+the rest of a tree. It's somewhat easy to see that the tree edges
+here to form a tree structure; if there is a node that breaks the tree structure,
+then it won't be a tree.
+Note that not all nodes will necessarily be encountered on a DFS.
+
+For a vertext $u$, define $d(u)$ as the discovery time: the time
+$u$ was first encountered on the search; define $f(u)$ to be
+its finish time, the time at which we realize we have discovered all
+outgoing vertices of a vertex (and DFS returns, I guess?).
+WE have thw following coloring scheme: until a vertex is discovered,
+we refer to it as being \textbf{white}. Once it's discovered, it turns
+\textbf{grey}. After the finish time, it turns \textbf{black}. Initially
+all vertices are white.
+
+WE have the \textbf{white path lemma}, which states that if there is a white
+path from $u$ to $v$ when $u$ is discovered, then 
+$$d(u) < d(f) < f(v) < f(u).$$
+
+WE also have the fact that the discovery/finish intervals for any intervals
+``nest'': that is, they can be disjoint, or the d/f interval for one
+vertex can be entirely inside that of another vertex; hoever we can't
+have overlapping nonnesting intervals---we have a call stack of vertices
+being visited, and that's just how stacks work.
+
+So the white path lemma is proved pretty straightforwardly from this
+latter fact. We can use induction on the length of teh path between
+$u$ and $v$.
+
+Another useful property is the following: the d/f times of
+$v$ nest inside those of $u$ iff $v$ is a proper descendent of $u$.
+This is pretty obvious and pretty easy to prove.
+
 
 
 
