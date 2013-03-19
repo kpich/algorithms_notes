@@ -2669,7 +2669,7 @@ This still gives us what we want, though.
 
 \section{Basic Graph Algorithms}
 
-\subsection{Directed Graph Traversal}
+\subsection{DFS}
 
 Depth-first search and Breadth-first search are defined for both directed
 and undirected cases.
@@ -2698,32 +2698,241 @@ here to form a tree structure; if there is a node that breaks the tree structure
 then it won't be a tree.
 Note that not all nodes will necessarily be encountered on a DFS.
 
-For a vertext $u$, define $d(u)$ as the discovery time: the time
+For a vertex $u$, define $d(u)$ as the discovery time: the time
 $u$ was first encountered on the search; define $f(u)$ to be
 its finish time, the time at which we realize we have discovered all
 outgoing vertices of a vertex (and DFS returns, I guess?).
-WE have thw following coloring scheme: until a vertex is discovered,
+We have the following coloring scheme: until a vertex is discovered,
 we refer to it as being \textbf{white}. Once it's discovered, it turns
 \textbf{grey}. After the finish time, it turns \textbf{black}. Initially
 all vertices are white.
 
-WE have the \textbf{white path lemma}, which states that if there is a white
+We have the \textbf{white path lemma}, which states that if there is a white
 path from $u$ to $v$ when $u$ is discovered, then 
-$$d(u) < d(f) < f(v) < f(u).$$
+$$d(u) < d(v) < f(v) < f(u).$$
 
-WE also have the fact that the discovery/finish intervals for any intervals
+We also have the fact that the discovery/finish intervals for any intervals
 ``nest'': that is, they can be disjoint, or the d/f interval for one
 vertex can be entirely inside that of another vertex; hoever we can't
-have overlapping nonnesting intervals---we have a call stack of vertices
-being visited, and that's just how stacks work.
+have overlapping nonnesting intervals---essentially, we have a call stack of 
+vertices being visited, and this is a property of stacks.
 
 So the white path lemma is proved pretty straightforwardly from this
-latter fact. We can use induction on the length of teh path between
+latter fact. We can use induction on the length of the path between
 $u$ and $v$.
 
 Another useful property is the following: the d/f times of
 $v$ nest inside those of $u$ iff $v$ is a proper descendent of $u$.
 This is pretty obvious and pretty easy to prove.
+
+Note, being a bit more formal about the edge classifications, 
+suppose we are looking at an edge from $u$ to $v$; $u$
+will be gray.
+\begin{itemize}
+	\item If $v$ is white, then $(u,v)$ is a tree edge.
+	\item If $v$ is gray, then $(u,v)$ is a back edge.
+	\item If $v$ is black, then $(u,v)$ is a forward or cross edge.
+	It's a forward edge of $d(u) < d(v) < f(v) < f(u)$, and is
+	a cross edge otherwise.
+	This uses the fact that $v$ is a descendent of $u$ in the forest defined
+	by tree edges iff $d(u) < d(v) < f(v) < f(u)$; that is, it's a forward
+	edge iff $v$ is a descendent of $u$.
+	
+	Note that cross edges either go from a node to a non-descendent node in
+	the same arborescence, or from one of the trees to a different 
+	previous-discovered tree.
+\end{itemize}
+We give four little applications of DFSs:
+\begin{itemize}
+\item
+\textbf{Strong connectivity:}
+To determine if a graph is strongly connected, we can do the 
+following: pick an arbitrary $u$, do a DFS; if everything is blackened, then
+you can get from anywhere to $u$; the second step is to 
+reverse the graph and do the same; if you've shown you can get to anywhere 
+from $u$
+and from anywhere to $u$, then your graph is strongly connected.
+
+\item
+\textbf{Directed cycle detection:}
+Second, we can do cycle recognition  easily.
+If any directed search gives at least one back edge, then you have a cycle.
+That is, no matter what search you do, you get at least one back edge.
+
+We prove both directions.
+First, suppose you have a back edge, we show a cycle.
+%To show this, we first note the following: the gray vertices form a
+%downward path from the current root. That is, our call stack of DFS-visit
+%will be all and only the nodes going back up to the root; the order in which
+%they occur corresponds to the order in which they're discovered.
+The gray node we're operating on currently has a greater discovery
+time than any of the other gray  nodes; this follows pretty straightforwardly
+from the stack-based discipline of the recursive algorithm.
+If we have a back edge from $u$ to $v$, then $d(v) < d(u)$, since we're
+using a stack. Since neither of them is finished (they're gray), we have from
+the nesting property that $d(v) < d(u) < f(u) < f(v)$; that is, $u$
+is a descendent of $v$, and so we get a cycle.
+
+Second, supposing we have a cycle; we need to show that we get a  back
+edge under any DFS.
+Suppose we have a cycle.
+Every vertex will eventually get discovered in the DFS.
+Take our cycle $C$; say we have $u$ and predecessor $v$; we have from the
+white path lemma that every path on the cycle will be discovered.
+Suppose we start at $u$ and end up at $v$, $u$'s parent; since
+these things nest, $v$ must complete before $u$ (or something); since they're
+both gray, this will be a back edge (THIS ARGUMENT ISN'T QUITE RIGHT).
+
+
+\item
+\textbf{Topological sort of a DAG:}
+Suppose we know we have a DAG.
+Our goal is to order the vertices so taht all the edges go from left to
+right (that is, if $(u,v) \in E$, then $u\leq v$ in the ordering).
+This is easy: run a DFS, and sort the nodes in descending order of
+finish time.
+So we run a DFS; as we turn vertices black, just stick them at the head of a 
+list.
+This results in a topological sort.
+
+In particular, we need to show that there is no way an edge can go from right
+to left.
+Suppose for contradiction that there's some edge $(u,v)$ going from
+right to left; that is $u > v$; that is to say, $f(v) > f(u)$ (recall we're
+sorting by DESCENDING finish time).
+
+So when the edge $(u,v)$ is processed, $u$ is gray; and $v$ is one of the three colors.
+If $v$ is gray, then it's a back edge; since that implies a cycle and we assume
+a DAG, that can't be.
+If it is black, then this implies $f(v) < f(u)$, which contradicts the
+ordering we imposed on the vertices (namely, that $f(v) > f(u)$).
+Finally, supposing $v$ is white, by nesting, we must have that $v$
+finishes before $u$ does, which again contradicts the ordering we defined on
+the vertices.
+
+\item
+\textbf{Computing strongly connected components of a graph:}
+Doing a DFS gives us a collection of arborescences spanning the entirety 
+of the graph $G$.
+Note that the cross-edges all have to go from ``right to left'' from later-
+discovered trees to earlier-discovered trees (otherwise, then the
+rightmost tree would have been a part of the leftmost tree).
+
+A strongly connected component with a component $v$ contains just those vertices
+that reach $v$ and can be reached by $v$.
+Suppose that $v$ is the root of some tree $T_k$ discovered by DFS; the strongly
+connected component with $v$ must be entirely within $T_k$, since no
+vertex in an earlier tree can reach $v$.
+Now, we've already determined that $v$ can reach everything in $T_k$; we now
+have to determine which vertices in $T_k$ can reach $v$.
+Consider reversing the edges and running a DFS.
+Note that if we do DFS in the reversal, we won't leave tree $T_k$; since
+the only edges leaving the tree go to previous trees, those will
+be reversed now.
+So the reversal of graph $T_k$ will only lead us to nodes in $T_k$ if we
+start at $v$.
+
+Note also that the strongly connected component with $v$ will consist
+of the ``top'' of $v$; that is, it's not possible to have a vertex
+$u$ in $v$'s strongly connected component that doesn't have a path from
+$v$ to $u$ in the tree (thik about this a bit more).
+
+So we remove $v$'s strongly connected component, and we're left with a bunch
+of little trees that were subtrees of $T_k$; what's left looks a lot
+like what we had before---we replace $T_k$ with 0 or more trees that have an
+ordering on them, and may have cross-edges going from right to left.
+We then recurse into the rightmost created subtree and do the same.
+
+All we need to do, then, to get the strongly connected components of a graph
+$G$ is to (1) run DFS on $G$; (2) run DFS on the reversal of $G$, with
+the outermost loop in descending order of finish times from the first
+DFS (That is, start at the rightmost arborescence discovered by the DFS;
+always start at the tree whose root has the highest finish time).
+
+\end{itemize}
+
+
+
+\subsection{BFS}
+
+We can use breadth-first-search to do \textbf{SSSP}--single-source
+shortest path---in an unweighted digraph.
+Suppose we have a single source $s$.
+We can find all things at distance $1$ from $s$ by looking at all of $s$'s
+children; we can find all things at distance $2$ by looking at their
+kids, etc.
+This is exactly what a BFS gives us.
+
+Recall that BFS simply uses a queue rather than a stack to keep track
+of where we are.
+So we put all of $s$'s kids into a queue, and blacken $s$.
+At that point, our queue contains all and only those things 1 elem away
+from $s$.
+Looking at $s$'s first child $x$, we look at all its kids, and add
+white ones to the queue.
+Once we've processed all nodes of distance 1 from $s$ in the queue, we will
+have put all and only those distance-2 vertices into the queue, and so on.
+
+BFS is of course $O(|V| + |E|)$; enqueueing and dequeueing is
+constant time.
+
+\subsection{Weighted SSSP, APSP}
+
+Recall Dijkstra's algorithm, which solves SSSP for weighted graphs.
+Assuming edge weight $\geq 0$, we can use, e.g., a Fibonacci heap
+to get $O(|E| + |V|\log|V|)$ for SSSP.
+(Note that if we use a simple binary heap, we get $O(|E|\log|V|)$, which is
+slightly worse.)
+
+Consider APSP, all-pairs shortest path.
+Naively, we can run Dijkstra's algorithm for every vertex, which will
+solve APSP in $O(|V||E| + |V|^2\log|V|)$.
+
+However, the above works only for graphs with nonnegative edge weights.
+If we allow arbitrary edge weights, assuming no negative-weight
+cycles, we don't get very good performance.
+We have, for example, Bellman-Ford, but that is $O(|E|\cdot |V|)$, which is
+decidedly nonlinear.
+
+Consider APSP for a graph with no
+negative-weight cycles (but with arbitrary edge weights).
+That is, we want the SP for every pair of nodes in the graph.
+Johnson's algorithm gives the same bound as using Dijkstra's algorithm
+$|V|$ times, which is cool (that is, recall, $O(|V||E| + |V|^2\log|V|)$).
+Basically, it uses one round of Bellman-Ford to convert to a graph with
+nonnegative edge weights that retains the shortest paths, and then
+runs Dijkstra's $|V|$ times.
+
+A side note, this general technique of first converting to graphs with only
+nonnegative edge weights and then using an algorithm that works for nonnegative
+graphs is somewhat common.
+
+
+Note that Dijkstra's algorithm is kind of a modification of BFS.
+We follow basically the same strategy as in a BFS---examine the closest things
+first, then the next closest, and so on.
+First, we find everything less than or equal to some distance $t$; everything
+else that we haven't found has distance $\geq t$.
+
+Call $X$ the set of things we've looked at, $Y$ the set of things we haven't.
+For every unexamined vertex $y$, we maintaing a value
+$$
+d'(y) = \min_{x\in X} d(x) + w(x,y).
+$$
+This is an obvious upper bound on the shortest path distance of $y$; if we
+can get to $x$ in $d(x)$ cost, then we know we can get from $x$ to $y$ in
+cost $w(x,y)$, and the cost of $y$ is $d'(y)$; there might be a 
+better way, but we can upper bound it thusly.
+
+In Dijkstra's algorithm, we store everything in a heap based on this
+upper-bound value $d'(y)$.
+What we do iteratively is remove a vertex $y^*\in Y$ minimizing $d'(y^*)$ (there
+may be multiple such $y^*$'s, of course).
+We have that $d'(y^*) = d(y^*)$; that is, the upper bound that $d'$ gives
+us is tight.
+
+With a Fibonacci min-heap, we can get decreaseKey in amortized constant
+time (wtf is this); anyways, we don't get that with a regular Binary Heap.
 
 
 
