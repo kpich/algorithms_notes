@@ -2935,6 +2935,313 @@ With a Fibonacci min-heap, we can get decreaseKey in amortized constant
 time (wtf is this); anyways, we don't get that with a regular Binary Heap.
 
 
+\subsection{Bellman-Ford}
+
+Bellman-Ford solves SSSP for graphs with arbitrary weight edges and no
+neg-weight cycles.
+How does Bellman-Ford work?
+For all $u$, let $d_u$ denote the shortest path distance from the source to
+ $u$.
+The key observation is that if there is an edge $(u,v)$ with weight $w(u,v)$,
+then we have
+$$
+d_v \leq d_u + w(u,v)
+$$
+That is, we can definitely get from the source to $v$ in
+by going through $u$ and then from $v$; there may be a shorter
+path.
+
+The algorithm works iteratively: we compute a sequence of values
+$$
+d_u^{(0)}, d_u^{(1)}, \ldots, d_u^{(|V| - 1)}
+$$
+for each vertex $u$; we set $d_u^{(0)}$ to $\infty$ if $u$ is not the
+source; at the source, we set the distance to $0$.
+
+At each step, then, we perform the following relaxation operation for
+every edge $(u,v)$:
+$$
+	d_v^{(i+1)} \leftarrow
+		\min\left\{
+			d_v^{(i)},
+			d_u^{(i)} + w(u,v)
+		\right\}.
+$$
+The key property here is the following claim:
+for every $i$, $d_u^{(i)}$ is the length of a shortest path from the
+source to $u$ with at most $i$ edges.
+
+We can prove the claim by induction on $i$.
+A brief proof sketch follows.
+Suppose the claim is true for $i$; we want to prove it for $i+1$.
+Let $P$ be a shortest path from $s$ to $u$ with at most $i+1$ edges.
+We must show that $d_u^{(i+1)}$ is the length of the path $P$.
+Let $v$ the predecessor to $u$ on the path $P$; then $P'$, the
+path from $s$ to $v$, must be a shortest path to $v$ with at most
+$i$ edges.
+The Induction Hypothesis entails that $d_v^{(i)}$ is the length of $P'$.
+By the definition of $d_v^{(i+1)}$, we'll get the desired result.
+
+This algorithm is, I think, $O(|V| |E|)$ (Check this?)
+
+A tiny remark is that it's not necessary to maintain separate variables
+$d_u^{(i)}$ for each stage; we can just use $d_u$ variables.
+The wording of our claim changes slightly, but it's not super-important.
+
+\subsection{Johnson's Algorithm for APSP}
+
+Floyd-Warshall gives an $O(|V|^3)$ algorithm for APSP.
+Johnson's algorithm gives us better behavior.
+
+Suppose we have a graph $G = (V,E)$ with no negative-weight cycles (but which 
+has arbitrary edge weights).
+We modify $G$ to get $G'$ by adding an additional node $z$ and edges of
+weight $0$ going to every node in $V$.
+For every $v\in V$, let $d_v$ be the weight of a shortest path from $z$ to $v$
+in $G$.
+Note $d_v$ is possibly negative (that is, isn't just trivially 0).
+We compute the $d_v$ values using Bellman-Ford, which is $O(|V| |E|)$.
+
+Now, we define $\widehat G$ as $G$ (that is, it doesn't have $z$), but with
+$w(u,v)$ replaced by
+$$
+\widehat w(u,v) = w(u,v) + d_u - d_v.
+$$
+We, crucially, have the property that $\forall u,v[\widehat w(u,v) \geq 0]$.
+Consider arbitrary $u,v$ connected in $G$ with $w(u,v)$.
+We have
+$$
+0 \leq d_u + w(u, v) - d_v
+$$
+(why?! We get it I think because $d_v \leq d_u + v(u,v)$.)
+
+So we have $\widehat G$ with nonneative edge weights; we can use Dijkstra's
+algorithm $|V|$ times to compute APSP in $\widehat G$ in
+$ O(|V|  |E| + |V|^2\log |V|)$
+time, which is fine.
+
+However, does this tell us anything about the answer to APSP in the original
+graph $G$?
+
+Consider some path from $u = v_0$ to $v = v_k$, which goes through
+$v_1, \ldots, v_{k-1}$.
+We ask about a path in $G$, however, there will also be a path in $\widehat G$,
+just with different edge weights.
+The weight of $P$ in $G$ is 
+$$
+W \equiv
+\sum_{0\leq i < k}
+w(v_i, v_{i+1}).
+$$
+Now, the weight of $P$ in $\widehat G$ is
+\begin{align*}
+& \sum_{0\leq i < k} w(v_i, v_{i+1}) + d_{v_i} - d_{v_{i+1}} \\
+= & W + d_{v_0} + d_{v_k} \\
+= & W + d_{u} + d_{v} \\
+\end{align*}
+where we have the second line because the first is a telescoping sum.
+
+Since we add the same thing to every path, then a shortest path from
+$u$ to $v$ in $\widehat G$ is also a shortest path in $G$.
+
+If our graph is not dense, then this is an asymptotic improvement over
+Floyd-Warshall (if on the other hand $|E| = |V|^2$, then the graph
+has the same asymptotic complexity).
+
+
+\section{Maximum Flow}
+
+We are given a directed graph $G=(V,E)$.
+Each edge $(u,v)$ has a non-negative capacity $c(u,v)$ (we typically
+consider integral capacities).
+We have two distinguished vertices $s$ and $t$, the source and sink, 
+respectively.
+We are interested in, intuitively, maximizing the flow from $s$ to $t$
+(think analogically about pipes).
+We have the following two constraints.
+First, defining $f(u,v)$ as the amount of flow we assign from $u$ to $v$
+(assuming $u$ and $v$ have an edge connecting them), 
+$0\leq f(u,v) \leq c(u,v)$; that is, we can't assign more flow than there
+is capacity.
+Second, flow conservation must hold for all nodes not in $\{s,t\}$; that is,
+$$
+\forall v\in V\setminus \{s,t\}
+\left[
+	\sum_u f(u,v) = \sum_u f(v,u)
+\right]
+$$
+where we use the convention that if $(u,v)\not\in E$, then $c(u,v) = 0$;
+this allows us to write expressions like $\sum_u$ without considering
+which edges are in the graph.
+The above equation, in other words, states that the flow into $v$
+is equal to the flow out of $v$.
+
+Our goal, then, is to maximize the net flow out of $s$:
+$$
+\sum_f f(s,v) - \sum_v f(v,s)
+$$
+which is the flow out of $s$ minus the flow into $s$.
+
+We have the notion of a \textbf{cut}: a cut $(S,T)$ is a partition of
+$V$ into two sets $S$ and $T$ so that $s\in S$ and $t\in T$.
+Note there are $2^{|V| - 2}$ cuts (for every vertex in $V\setminus \{s,t\}$,
+we can put it in either of the two sets.
+
+Note also the value of flow across a cut $(S,T)$ is
+$$
+\sum_{u\in S} \sum_{v\in T}
+	f(u,v) - f(v,u)
+$$
+
+Note that the net flow out of $s$ is the value of $f$ across the cut
+$$
+\left(\{s\}, V\setminus \{s\}\right).
+$$
+Note that for a fixed flow $f$, the value of the flow is the same
+across all cuts (that is, for any cut, we'll get the same value of flow,
+so our maximization problem is perfectly well-defined. I don't QUITE get
+this I don't think).
+
+The proof of the above looks something like following.
+Fix a cut $(S,T)$; we'll argue that the value of the flow across this cut is
+ equal to the value of the flow across the special cut
+$ \left(\{s\}, V\setminus \{s\}\right)$.
+We rewrite the equation giving the value of flow across a cut $(S,T)$ to get
+$$
+\sum_{u\in S} \sum_{v \in S} f(u,v) - f(v,u) = 0
+$$
+
+WE have that the flow across $(S,T)$ is equal to itself plus the above,
+which is equal to
+$$
+\sum_{u\in S}
+\sum_{v\in V}
+f(u,v) - f(v,u)
+$$
+Augh, what?
+Now, the net flow out of $u$ is equal to $0$ unless $u=s$, so we
+have the above equal to
+$$
+\sum_{v\in S} f(s,u) - f(v,s)
+$$
+since all but one term in the outermost sum is equal to $0$.
+
+We are therefore free to refer to the ``value of $f$'', regardless of the cut;
+that will be equal to the value of the flow across any cut.
+
+For a cut $(S,T)$, we define the \textbf{capacity of a cut} to be
+equal to
+$$
+\sum_{u\in S} \sum_{v\in T}
+c(u,v).
+$$
+Importantly, we are not taking into account the edges going back
+from $T$ to $S$.
+Intuitively, this is a naive upper-bound on the value of the flow across
+the cut $(S,T)$: hypothetically maximizing flow out of $S$ and into $T$
+(and ignoring flow back from $T$ to $S$) gives us an upper bound on the 
+max flow.
+
+Now, a \textbf{minimum cut} is defined to be a cut of minimum capacity.
+
+We have the \textbf{Max-Flow Min-Cut Theorem}, which states that
+the value of a max flow is equal to the capacity of a min cut.
+We prove this by proving the two inequalities.
+
+First, let $(S,T)$ be a min-cut. We have that the capacity
+$$
+\sum_{u\in S} \sum_{v\in T}
+c(u,v)
+$$
+is an upper-bound on the flow across $(S,T)$:
+$$
+\sum_{u\in S} \sum_{v\in T}
+	f(u,v) - f(v,u)
+$$
+which tells us that the value of a max flow $\leq$ the capacity
+of a min cut.
+
+In the other direction, we want to show that the capacity of a min-cut is
+at most the value of a max-flow.
+To show this, we need another defintion.
+Define a \textbf{residual network} $G_f$ of a given flow-network $G$ with
+respect to a given flow $f$.
+
+The idea of this network is to model the leftover ``unused'' capacity in the
+network $G$.
+That is, for nodes $u,v$, we have flow values $f(u,v)$
+and $f(v,u)$, and $c(u,v)$ and $c(v,u)$. Considering only these values, what
+is a naive upper-bound on the amount of increase in the net flow being pushed
+from $u$ to $v$ along these edges?
+WEll certainly, we can increase flow from $u$ to $v$ by
+$$
+c(u,v) - f(u,v)
+$$
+which uses up unused capacity.
+WE can also eliminate any flow going from $v$ to $u$, which would
+increase the net flow; the most we can do so is
+$$
+f(v,u).
+$$
+So the most we can hope to increase the net flow from $u$ to $v$, ignoring
+everything else in the network, is
+$$
+c(u,v) - f(u,v) + f(v,u)
+\equiv c_f(u,v)
+$$
+So the residual network will be a network with capacity $c_f(u,v)$ going
+between $u$ and $v$; note that we get this to be a valid edge capacity
+through a simple argument of some sort involving the definition of $c_f(u,v)$.
+
+For every pair of vertices $u$ and $v$, we go through this calculation.
+It is convenient to remove from $G_f$ any edges $(u,v)$ with zero
+residual capacity (with $c_f(u,v) = 0$).
+This will be useful because we'll be interested in determining the presence
+of directed paths from $s$ to $t$ in the residual network.
+
+Suppose there is a path $P$ from $s$ to $t$ in $G_f$.
+Let's say there are 4 edges on $P$, with weights 5, 3, 12, and 3.
+We claim that $f$ is not a max-flow; if we were to augment $f$ by pushing
+an additional 3 units of flow along the path.
+More generally, we can find a flow $f'$ with value equal to value of $f + 3$
+along the path, and unchanged everywhere else.
+We do this by adjusting the flow between two nodes $u,v$ on the path either
+increasing $f(u,v)$ or backing off the flow on $f(v,u)$; to do that, we
+will have increased the net flow by $3$, but may violate the conservation
+principle. However, we also push an additional 3 units of flow to the
+next rightmost node, which offsets the change we made before.
+By following this logic all the way along to $t$, we will have routed
+3 units more flow from $s$ to $t$.
+A path of this sort is called an \textbf{augmenting path}.
+
+An algorithm emerges from this: start with an all-zeroes flow; repeatedly
+construct the network, using a DFS to check the existence of an $(s,t)$ path, 
+and repeat.
+
+Suppose no $s-t$ path exists in $G_f$.
+Let $S$ be the set of nodes reachable from $s$ in $G_f$, and let 
+$T = V\setminus S$.
+Let's return to the other half ot ehe max-flow min-cut theorem that we haven't
+showed yet.
+We cannot get from anything in $S$ from anything to $T$; for every $u\in S$
+and $v\in T$, the residual capacity is $0$; if it were otherwise, then the
+edge would be present.
+The only way a residual capacity can be $0$ is if $c(u,v) - f(u,v) = 0$ and $f(v,u) = 0$.
+That is, there is nothing flowing back from $f(v,u)$, and $f(u,v)$ is at its
+capacity.
+Following this logic across the cut tells us that the value of $f$ is equal
+to the capacity of $(S,T)$.
+
+The max-flow is greater than or equal to $f$, which is the capacity of cut
+$(S,T)$, which is greater than or equal to the capacity of a min-cut.
+(Since $(S,T)$ is an arbitrary cut, the min-cut will be less).
+We have therefore established the second inequality, and we've proven
+the max-flow theorem.
+
+Given that we've proven the theorem, we actually have tight bounds, and
+$f$ is a max-flow, and $(S,T)$ is a min-cut.
+In other words, our algorithm gives us max-flow; additionally, it gives us
+a min-cut.
 
 
 
