@@ -3085,7 +3085,7 @@ which is the flow out of $s$ minus the flow into $s$.
 We have the notion of a \textbf{cut}: a cut $(S,T)$ is a partition of
 $V$ into two sets $S$ and $T$ so that $s\in S$ and $t\in T$.
 Note there are $2^{|V| - 2}$ cuts (for every vertex in $V\setminus \{s,t\}$,
-we can put it in either of the two sets.
+we can put it in either of the two sets).
 
 Note also the value of flow across a cut $(S,T)$ is
 $$
@@ -3099,8 +3099,7 @@ $$
 $$
 Note that for a fixed flow $f$, the value of the flow is the same
 across all cuts (that is, for any cut, we'll get the same value of flow,
-so our maximization problem is perfectly well-defined. I don't QUITE get
-this I don't think).
+so our maximization problem is perfectly well-defined).
 
 The proof of the above looks something like following.
 Fix a cut $(S,T)$; we'll argue that the value of the flow across this cut is
@@ -3141,6 +3140,8 @@ Intuitively, this is a naive upper-bound on the value of the flow across
 the cut $(S,T)$: hypothetically maximizing flow out of $S$ and into $T$
 (and ignoring flow back from $T$ to $S$) gives us an upper bound on the 
 max flow.
+
+\subsection{Ford-Fulkerson algorithm, Max-flow Min-cut theorem}
 
 Now, a \textbf{minimum cut} is defined to be a cut of minimum capacity.
 
@@ -3217,13 +3218,14 @@ A path of this sort is called an \textbf{augmenting path}.
 An algorithm emerges from this: start with an all-zeroes flow; repeatedly
 construct the network, using a DFS to check the existence of an $(s,t)$ path, 
 and repeat.
+This is the \textbf{Ford-Fulkerson algorithm}.
 
 Suppose no $s-t$ path exists in $G_f$.
 Let $S$ be the set of nodes reachable from $s$ in $G_f$, and let 
 $T = V\setminus S$.
 Let's return to the other half ot ehe max-flow min-cut theorem that we haven't
 showed yet.
-We cannot get from anything in $S$ from anything to $T$; for every $u\in S$
+We cannot get from anything in $S$ to anything in $T$; for every $u\in S$
 and $v\in T$, the residual capacity is $0$; if it were otherwise, then the
 edge would be present.
 The only way a residual capacity can be $0$ is if $c(u,v) - f(u,v) = 0$ and $f(v,u) = 0$.
@@ -3243,7 +3245,204 @@ $f$ is a max-flow, and $(S,T)$ is a min-cut.
 In other words, our algorithm gives us max-flow; additionally, it gives us
 a min-cut.
 
+Note that we called Ford-Fulkerson an algorithm, but it shouldn't really
+properly be treated as one: we don't specify how to pick the augmenting
+path from $s$ to $t$; in the worst case, the time complexity is pretty bad,
+if you make bad choices about which augmenting paths to choose.
+In particular, it can be linear in the sum of the max-flow; that is to say,
+the algorithm is pseudopolynomial---we'd like it to be independent of the
+magnitude of the flow, assuming it fits in a word or whatever, but it isn't.
 
+More concretely, this is
+$$
+O(|f^*| |E|)
+$$
+with $f^*$ the magnitude of the max-flow, and $|E|$ the number of edges.
+
+If we modify this to use a BFS somehow (I'm not sure how, look this up), we
+get what's called the \textbf{Edmonds-Karp algorithm}.
+This ends up being $O(|V| |E|^2)$.
+
+\subsection{A lemma about Edmonds-Karp}
+
+Suppose $d_f(s,v)$ is the shortest path length from $s$ to $v$ in $G_f$.
+We show the following fact about Edmonds-Karp:
+
+For any vertex $v\in V\setminus \{s\}$, $d_f(s,v)$ does not decrease.
+
+We use induction. Suppose we have two steps $G_f$ and $G_{f'}$, before
+and after a step (I think).
+WE must show $d(f(s,v) \leq d_{f'} (s,v) \equiv k$.
+
+Supposing $k=0$, this is trivially true, since $d_f(s,v)$ is always 
+nonnegative (I think).
+
+For the inductive step, We consider $d_{f'}(s,v) = k+1$, assuming it holds
+for $k$.
+WE have a path from $s$ to some $u$, and then an edge from $u$ to $v$.
+WE'll have that
+\begin{align}
+d_{f'}(s,v) 
+& = d_{f'}(s,u) + 1 \\
+&\geq d_f(s,v) + 1
+\end{align}
+the last step is by IH.
+There are two cases: either the last edge $(u,v)$ is in the resididual
+graph, or it isn't.
+If $(u,v)\in E_f$, then we have
+$$
+d_f(s,v) \leq d_f(s,u) + 1
+$$
+I have no idea why this is true.
+
+The other case is where $(u,v) \not\in E_f$.
+This can only happen if we cancel some flow going through a different edge
+(what? why?).
+In other words, we pushed flow from $v$ to $u$ to obtain $f'$ from $f$.
+That is, the reverse edge $(v,u)$ must appear in $G_f$.
+Then we have that 
+$$
+d_f(s,u) = d_f(s,v) + 1
+$$
+for some reason.
+Note that here we use Edmonds-Karp somehow---we assume that the path we
+choose is the shortest path.
+
+We thus have 
+$$
+d_{f'}(s,v) \geq d_f(s,v) + 2
+$$
+by putting these two parts together.
+
+\subsection{Runtime of Edmonds-Karp}
+
+WE can safely assume the number of edges is at least $|V|$; if
+$|E| < |V|$, then we can throw out some vertices and our max-flow will be the
+same.
+So we'll show that Edmonds-Karp is $O(|E| |E| |V|)$.
+We use the previous lemma.
+
+Whenever we augment the flow along a path, at least one of the edges will
+become saturated---we augment by the min value along an augmenting path.
+This edge (the one that gets saturated and disappears in the next
+residual graph) is known as a \textbf{critical edge}.
+
+We will argue that each edge can be a critical edge at most $|V|/2$ times.
+This will give us the result---each time we do an augmentatoin, at least
+one edge becomes critical, so $|E||V| / 2$ becomes an upper-bound
+on the number of augmentations we perform, and each of those is $O(|E|)$
+(note BFS is actually $O(|V| + |E|)$, but recall that we assume
+ $|E| \geq |V|$).
+
+Suppose $(u,v)$ is critical during an augmentation. 
+Then the augmentation path has some $s-u$ path and some $v-t$ path, with
+$(u,v)$ on the path.
+Note we have
+$$
+d_f(s,v) = d_f(s,u) + 1
+$$
+since $(u,v)$ is on the path.
+
+In the next residual graph, $(u,v)$ is not an edge, since it's critical;
+however, $(v,u)$ will appear.
+If $(u,v)$ appears in some future residual residual network $G_{f''}$,
+then we will have had to push flow from $v$ to $u$ in the
+residual previous to $G_{f''}$.
+The path at that point will have to have an $s-v$ path, have $(v,u)$, and
+then a $u-t$ path.
+Further,
+$$
+d_{f'}(s,v) = d_{f'}(s,v) + 1
+$$
+where $f'$ here ISN'T the $f'$ it was before, but instead the flow of the
+residual network that's the immediately predecessor to $f''$, I think.
+
+By our lemma, however, this tells us that
+$$
+d_{f'}(s,u) \geq
+d_{f} (s,u) + 2.
+$$
+In other words, if the edge $(u,v)$ appears again, then the distance of the
+critical path will have increased by at least two.
+Since the distance of any node is $|V|$, then something can be a critical
+path at most $|V| / 2$ times.
+
+So since there are $|E|$ edges, each of which is a critial path at most
+$|V| / 2$ times, there are at most $O(|E| |V|)$ steps in the algorithm.
+
+In other words, we've shown that Edmonds-Karp is a true polynomial algorithm,
+as opposed to Ford-Fulkerson, which is pseudopolynomial.
+
+
+\subsection{Push-relabel algorithms}
+
+What we do here, intuitively, is start at the source, push out to its 
+neighbors, and have each vertex push its excess flow to its neighbors 
+(where excess flow is defined as the amount of flow you received that you
+can't push out); after this propagates forward to $t$, the excess
+is propagated back to $s$, giving us a max-flow.
+Eventually we'll get a flow (which is a real flow), but during intermediate
+steps, the current flow doesn't always satisfy the conservation constraint.
+
+For a vertex $u$, define
+$$
+e(u) = \sum_v f(v,u) - \sum_v f(u,v) 
+\geq 0.
+$$
+This is the excess flow: how much more flow comes in than is going out.
+It's will be nonnegative: at no point in our algorithm can it go below 0.
+
+Further, define $h(u)$ to be the nonnegative height of $u$;
+For every $v$ with $(u,v) \in E_f$, we will require that
+$$
+h(u) \leq h(v) + 1.
+$$
+
+Whenever we push flow to another neighbor, we'll require two conditions.
+First, there must be an edge to the neighbor in the residual graph; second,
+that neighbor's height must be 1 lower than our height.
+
+We define an operation push$(u)$, that we can call whenever $u$ is 
+overflowing (that is,
+$e(u) > 0$), and there is an edge $(u,v)\in E_f$ for some $v$ such that
+$h(u) = h(v) + 1$.
+The push operation moves some excess from $u$ to $v$; the amount we push
+is defined by $e(u)$ and the residual capacity on the edge between them.
+In particular,
+$$
+\Delta f(u,v) = \min\{
+	e(u), c_f(u,v)
+\}.
+$$
+We have $e(u) -= \Delta f$, and $e(v) += \Delta f$; further, we adjust
+the residual graph.
+
+There is another operation, called relabel$(u)$, which changes the height
+of $u$.
+We can call it only when $u$ is overflowing and, for all neighbors with
+$(u,v) \in E_f$, we have $h(u) \leq h(v)$.
+(Note that if you can push, then you won't be able to relabel; you can
+relabel exactly when you can't push your excess to anyone else---all
+your neighbors are really high.)
+To relabel, we adjust our height in a way that allows us to push again:
+$$
+h(u) \gets
+1 + \min\{ h(v) : (u,v) \in E_f\}.
+$$
+This will allow you to push to your lowest-height neighbor.
+
+With these in hand, the algorithm is easy to define: 
+\begin{enumerate}
+	\item
+	Initialize preflow: assign $0$ height to all vertices except for the
+	source, which gets $h(s) = |V|$; then, the source saturates every
+	outgoing edge (that is, $f(u,v) = c(u,v)$ if $u=s$, $0$ otherwise).
+	
+	\item
+	While there is an operation we can perform (either push or relabel), we
+	can either push or relabel.
+\end{enumerate}
+Once we terminate, we will have a proper flow which happens to be the max flow.
 
 
 
