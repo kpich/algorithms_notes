@@ -3374,15 +3374,24 @@ In other words, we've shown that Edmonds-Karp is a true polynomial algorithm,
 as opposed to Ford-Fulkerson, which is pseudopolynomial.
 
 
-\subsection{Push-relabel algorithms}
+\subsection{Generic Push-Relabel algorithm}
 
-What we do here, intuitively, is start at the source, push out to its 
-neighbors, and have each vertex push its excess flow to its neighbors 
-(where excess flow is defined as the amount of flow you received that you
-can't push out); after this propagates forward to $t$, the excess
-is propagated back to $s$, giving us a max-flow.
-Eventually we'll get a flow (which is a real flow), but during intermediate
-steps, the current flow doesn't always satisfy the conservation constraint.
+We give a ``generic'' push-relabel algorithm, which will achieve
+an $O(|V|^2|E|)$ uppser bound for max-flow (compared to Edmonds-Karp, which
+was $O(|V| |E|^2)$).
+This is an improvement, as $|V|$ is better than $|E|$ in the max-flow setting.
+
+Later, we'll further improve this to $O(|V|^3)$.
+The generic algorithm is nondeterministic (there will be a step of the form
+``choose some node from a list''). Later we'll give a deterministic one,
+implementing the nondeterministic one we present here, that will be $O(|V|^3)$.
+
+We'll build \textbf{preflows}, rather than flows. They respect capacity 
+constraints
+(no edge can have a flow greater than its capacity, and every flow is 
+nonnegative); however, instead of flow conservation, we'll require that
+the net flow into any $u\in V\setminus\{s\}$ to be nonnegative (so we
+can have more flow in than out, but not vice versa).
 
 For a vertex $u$, define
 $$
@@ -3391,58 +3400,265 @@ e(u) = \sum_v f(v,u) - \sum_v f(u,v)
 $$
 This is the excess flow: how much more flow comes in than is going out.
 It's will be nonnegative: at no point in our algorithm can it go below 0.
+A vertex is said to be \textbf{overflowing} if $u\in V\setminus\{s,t\}$ and 
+$e(u) > 0$.
 
-Further, define $h(u)$ to be the nonnegative height of $u$;
-For every $v$ with $(u,v) \in E_f$, we will require that
-$$
-h(u) \leq h(v) + 1.
-$$
+We'll define residual networks as we did above: when defining $c_f(u,v)$, the
+residual capacity under $f$ from $u$ to $v$, we construct it locally: we look
+only at $f(u,v), f(v,u), c(u,v)$, and $c(v,u)$.
 
-Whenever we push flow to another neighbor, we'll require two conditions.
-First, there must be an edge to the neighbor in the residual graph; second,
-that neighbor's height must be 1 lower than our height.
+We don't just maintain a preflow; we maintain a preflow and a \textbf{height
+function}, mapping each node to a nonnegative integer.
+Now, at all points, $h(s) = |V|$, $h(t) = 0$.
+For $u\in V\setminus\{s,t\}$, $h(u)$ will be initially 0; it may increase
+at times from relabel operations (defined below).
 
-We define an operation push$(u)$, that we can call whenever $u$ is 
-overflowing (that is,
-$e(u) > 0$), and there is an edge $(u,v)\in E_f$ for some $v$ such that
-$h(u) = h(v) + 1$.
-The push operation moves some excess from $u$ to $v$; the amount we push
-is defined by $e(u)$ and the residual capacity on the edge between them.
-In particular,
-$$
-\Delta f(u,v) = \min\{
-	e(u), c_f(u,v)
-\}.
-$$
-We have $e(u) -= \Delta f$, and $e(v) += \Delta f$; further, we adjust
-the residual graph.
+So $(f,h)$ capture the state of the algorithm; call one such $(f,h)$ a
+configuration.
+At any point, if $(u,v) \in E_f$ (the residual network---that is, if
+$c_f(u,v) > 0$), then we will require $h(u) \leq h(v) + 1$.
+Any $(f,h)$ pair meeting this restriction (with $f$ a valid preflow and
+$h$ satisfying $h(t) = 0, h(s) = |V|$) is a configuration.
 
-There is another operation, called relabel$(u)$, which changes the height
-of $u$.
-We can call it only when $u$ is overflowing and, for all neighbors with
-$(u,v) \in E_f$, we have $h(u) \leq h(v)$.
-(Note that if you can push, then you won't be able to relabel; you can
-relabel exactly when you can't push your excess to anyone else---all
-your neighbors are really high.)
-To relabel, we adjust our height in a way that allows us to push again:
+We have the following \textbf{lemma}: in any configuration $(f,h)$, 
+$t$ is not reachable from $s$ in the residual network. If it
+were, then there would be a simple path from $s$ to $t$ in the residual
+network, with $\leq |V| - 1$ edges. The node on the path next to 
+$s$ has to have height $\geq |V| - 1$; the next has to have height
+$\geq |V| - 2$; carrying that forward to $t$, we get that
+$h(t) \geq 1$, which is a contradiction.
+
+We also have the following \textbf{lemma}: if we have a config $(f,h)$
+where no vertices are overflowing, then $f$ is a max flow.
+The proof is, basically, that if we have no overflowing vertices, then
+we have that $f$ is a flow; by the previous lemma, $t$ not being
+reachable implies that $f$ is a max-flow.
+
+We might think that we can just initialize to have 0 flow everywhere,
+but that violates the requirement that if $(u,v) \in E_f$, then
+$h(u) \leq h(v) + 1$ (THINK ABOUT THIS A BIT MORE).
+
+We initialize the flow $f$ as follows, then: flow everywhere is $0$, except
+for the edges leaving $s$; set $f(s,v) = c(s,v)$ for all $v$.
+Note we couldn't have done this in Ford-Fulkerson, as this would violate
+flow conservation; we have a preflow, rather than a flow.
+
+We have a \textbf{push} operation, which is valid on an edge $(u,v)$ if
+(1) $u$ is overflowing;
+(2) $(u,v) \in G_f$;
+(3) $h(u) = h(v) + 1$.
+The natural thing to do, here is to increase the amount of flow on
+edge $(u,v)$ by $c_f(u,v)$ (or, equivalently, to decrease the amount of
+flow on $(v,u)$, whichever is possible).
+We thus change the flow function; this will also change $e(u)$ and $e(v)$.
+We may have a \textbf{saturating} push---which increases the flow by 
+$c_f(u,v)$; we can also have \textbf{nonsaturating} pushes, which will occur
+if $e(u) < c_f(u,v)$: in this case, we can't increase by more than $e(u)$, 
+which will make $e(u) < 0$, violating our nonnegativity condition on preflows.
+
+We need to argue that if $(f,h)$ is a configuration, then $(f',h)$ is also
+a configuration, with $f'$ the flow after a single push operation.
+This is pretty clear by the definition of push---we never turn
+$e(u) < 0$, and we increase $e(v)$.
+
+What if $u$ is overflowing, but we cannot perform a push on any edge $(u,v)$?
+Supposing $u$ is overflowing, it must receive at least one unit of flow;
+it has some neighbor $v$ in the residual network; by backing off that unit
+of flow, we increase the flow from $u$ to $v$, so $(u,v)\in G_f$.
+Thus, there is a nonempty set $v_1,\ldots,v_k$ such that $c_f(u,v_i) > 0$.
+WE have that $h(u) \leq \min\{h(v_1),\ldots,h(v_k)\}$; if it were otherwise,
+then we would be able to push to some $v$ (recall teh conditions under which
+we may perform a push operation).
+
+We thus define a \textbf{relabel} operation, which sets 
 $$
 h(u) \gets
-1 + \min\{ h(v) : (u,v) \in E_f\}.
+1 + \min_i\{h(v_i)\}
 $$
-This will allow you to push to your lowest-height neighbor.
+with $i$ ranging over all $v_i$ with $c_f(u,v_i) > 0$.
+After we relabel, we are guaranteed to be able to push.
+It's not too tough (I don't think) to see this results in a preflow.
+Actually, maybe we need another result.
 
-With these in hand, the algorithm is easy to define: 
-\begin{enumerate}
-	\item
-	Initialize preflow: assign $0$ height to all vertices except for the
-	source, which gets $h(s) = |V|$; then, the source saturates every
-	outgoing edge (that is, $f(u,v) = c(u,v)$ if $u=s$, $0$ otherwise).
-	
-	\item
-	While there is an operation we can perform (either push or relabel), we
-	can either push or relabel.
-\end{enumerate}
-Once we terminate, we will have a proper flow which happens to be the max flow.
+We now upper-bound the number of different number of operations that can
+be performed, and thereby convince ourselves that we don't get into
+an infinite loop.
+
+We use the following \textbf{lemma}: if $u$ is overflowing, then there is
+some path from $u$ to $s$ in $G_f$, for any preflow $f$.
+Intuitively, all the flow we ``create'' happens at the very beginning: if
+a node has excess flow, it ultimately got it from the source---there should
+be residual capacity on the reverse path allowing us to push flow back
+to the source.
+
+Let $U$ be the set of vertices reachable from $u$ in $G_f$, with $u$
+the overflowing node in the network.
+Suppose, for contradiction, $s\not\in U$.
+Let $\overline U = V\setminus U$.
+We have
+$$
+\sum_{v\in U} e(v) = 
+\sum_{v\in U}
+\sum_{v'\in\overline U}
+f(v',u) - f(v,v').
+$$
+We don't prove this here, but it's pretty easy to see.
+Intuitively, if the vertices in $U$ have total excess 100, then it's not
+from ``internal'' flows: if we have $(u,v)$ with $u,v\in U$, then a flow
+of 5 from $u$ to $v$ increases $e(u)$ by 5, but decreases $e(v)$ by the
+same amount.
+So all the excess in $U$ comes from $\overline U$.
+
+Now, the LHS of the above
+$$
+\sum_{v\in U} e(v)
+$$
+is positive: all the terms are nonnegative, and at least one of them
+is positive (since $s\not\in U$, I believe).
+Therefore, at least one of the terms on the RHS is positive.
+Pick such a term $v\in U, v'\in\overline U$ with $c_f(v,v') > 0$;
+that is, edge $(v,v')\in G_f$.
+Since $v\in U$ (it's reachable from $u$ in the residitual network); further,
+there is an edge from $v$ to $v'$, then $v'$ is in the residual network.
+Thus, $s\in U$, and the lemma is proved.
+
+We now have the following \textbf{lemma}: No vertex height can exceed
+$2|V| - 1$.
+We know the source has height $|V|$. Suppose some other vertex $u$ has
+height $h \geq 2|V|$.
+In order for this to have happened, there must have been some relabel
+operation bumping its height to this value; since the vertex $u$ was
+overflowing at that time (a condition for relabel), then there was some
+path from $u$ back to $s$ in the residual graph.
+There are at most $|V| - 1$ edges on that height; the node next to
+$u$ on this path has height $\geq h-1$, the next height $\geq h-2$, and
+so on back to the source, with height $|V| + 1$, which is a contradiction.
+This completes the proof.
+
+From this past lemma, we get another \textbf{lemma}: The number of 
+relabels is $O(|V|^2)$, which is pretty easy to see.
+
+Further, we have the following \textbf{lemma}:
+The number of saturating pushess is $O(|V| |E|)$. How many times can we
+do a saturating push from $u$ to $v$? Suppose we do one--at that point
+$h(u) = h(v) + 1$, and $c_f(u,v)$ is not in the resulting residual network.
+The only way that $c_f(u,v)$ can reappear is if we do a push from $v$
+to $u$; in order to do that, the height of $v$ will have increased to be
+one more than $u$.
+We won't be able to do another push from $u$ to $v$ until we've relabeled
+$u$ again.
+Thus, for each edge, we can only do $O(|V|)$ pushes ($|V| / 2$ maybe, I think).
+
+Note the above argument doesn't hold for nonsaturating pushes: you can do
+a bunch of nonsaturating pushes without the height of $u$ increasing.
+
+Finally, it remains to bound the number of nonsaturating pushes; we'll want
+to bound that by $O(|V|^2|E|)$.
+To do so, we use a potential function argument.
+Define 
+$$
+\sum_{u : e(u) > 0} 
+h(u)
+$$
+which is the height of all overflowing vertices (the sink isn't an overflowing
+vertex, but since the height of the sink is 0, that doesn't matter).
+
+First, note each relabel increases $\Phi$ by $O(|V|)$.
+A relabel doesn't change the flow/excesses---in particular, it doesn't
+change which  nonzero items are summed over in $\Phi$; it only changes the
+height; since each relabel can only be $O(|V|)$ (since the height is
+bounded), this gives us the result.
+Further, this tells us that the total increase due to relabels is
+$O(|V|^3)$ (there are $O(|V|^2)$ relabels).
+
+Second, each saturated push incrases $\Phi$ by $O(|V|)$.
+In a saturating push from $u$ to $v$, it may be that $v$ didn't previously
+have positive excess but does now (that is, the sum can now range over
+another node; since $h(v) \leq 2|V|$, then the increase is $O(|V|)$).
+Thus, the total increase due to saturated pushes is $O(|V|^2|E|)$.
+
+Note that
+initially, $\Phi = 0$; at each point, $\Phi \geq 0$.
+
+Finally, we claim that each nonsaturated push causes $\Phi$ to 
+decrease by at least 1.
+Suppose we have a nonsaturated push from $u$ to $v$, with $h(u) = k$ and
+$h(v) = k-1$.
+The excess of $u$, which was positive before, becomes 0; thus the term
+from $u$ is dropped from $\Phi$, and $\Phi$ is thereby made $k$ smaller.
+We may have, by the nonsaturated push, casued $v$ to contribute to the
+$\Phi$ sum where before it had $e(v) = 0$; thus, $k-1$ may be added to
+$\Phi$. If so, the drop is $1$, otherwise, the drop is $k$: either way,
+we get a positive drop.
+
+
+
+
+
+
+
+
+%What we do here, intuitively, is start at the source, push out to its 
+%neighbors, and have each vertex push its excess flow to its neighbors 
+%(where excess flow is defined as the amount of flow you received that you
+%can't push out); after this propagates forward to $t$, the excess
+%is propagated back to $s$, giving us a max-flow.
+%Eventually we'll get a flow (which is a real flow), but during intermediate
+%steps, we'll have a preflow.
+%
+%
+%
+%%Further, define $h(u)$ to be the nonnegative height of $u$;
+%%For every $v$ with $(u,v) \in E_f$, we will require that
+%%$$
+%%h(u) \leq h(v) + 1.
+%%$$
+%
+%Whenever we push flow to another neighbor, we'll require two conditions.
+%First, there must be an edge to the neighbor in the residual graph; second,
+%that neighbor's height must be 1 lower than our height.
+%
+%We define an operation push$(u)$, that we can call whenever $u$ is 
+%overflowing (that is,
+%$e(u) > 0$), and there is an edge $(u,v)\in E_f$ for some $v$ such that
+%$h(u) = h(v) + 1$.
+%The push operation moves some excess from $u$ to $v$; the amount we push
+%is defined by $e(u)$ and the residual capacity on the edge between them.
+%In particular,
+%$$
+%\Delta f(u,v) = \min\{
+%	e(u), c_f(u,v)
+%\}.
+%$$
+%We have $e(u) -= \Delta f$, and $e(v) += \Delta f$; further, we adjust
+%the residual graph.
+%
+%There is another operation, called relabel$(u)$, which changes the height
+%of $u$.
+%We can call it only when $u$ is overflowing and, for all neighbors with
+%$(u,v) \in E_f$, we have $h(u) \leq h(v)$.
+%(Note that if you can push, then you won't be able to relabel; you can
+%relabel exactly when you can't push your excess to anyone else---all
+%your neighbors are really high.)
+%To relabel, we adjust our height in a way that allows us to push again:
+%$$
+%h(u) \gets
+%1 + \min\{ h(v) : (u,v) \in E_f\}.
+%$$
+%This will allow you to push to your lowest-height neighbor.
+%
+%With these in hand, the algorithm is easy to define: 
+%\begin{enumerate}
+%	\item
+%	Initialize preflow: assign $0$ height to all vertices except for the
+%	source, which gets $h(s) = |V|$; then, the source saturates every
+%	outgoing edge (that is, $f(u,v) = c(u,v)$ if $u=s$, $0$ otherwise).
+%	
+%	\item
+%	While there is an operation we can perform (either push or relabel), we
+%	can either push or relabel.
+%\end{enumerate}
+%Once we terminate, we will have a proper flow which happens to be the max flow.
 
 
 
