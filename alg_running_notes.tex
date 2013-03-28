@@ -96,7 +96,7 @@ They're taken primarily in-class, and probably only useful for my own
 
 \end{itemize}
 
-\section{1/22/2013: Chernoff Bounds, the Tails of the Binomial}
+\section{Chernoff Bounds, the Tails of the Binomial}
 
 If we have a  binomaial RV $X\sim B(n,p)$, then we have the following
  Chernoff bound, for $0\leq \delta \leq 1$:
@@ -289,7 +289,7 @@ HOw can we use the prvious result to convince ourselves of this?
 
 
 
-\section{1/24/2013: Hashing}
+\section{Hashing}
 
 Let's think about Randomized quicksort.
 We know that randomized quicksort has expected $O(n\log n)$ behavior.
@@ -664,7 +664,7 @@ We do this for each primary hash function and each secondary hash function.
 
 
 
-\section{1/29/2013: Dynamic Programming}
+\section{Dynamic Programming}
 
 \subsection{Examples}
 
@@ -892,7 +892,7 @@ polynomial in the input size if the input integers are represented
 in unary.
 
 
-\section{1/31/2013: Greedy Algorithms}
+\section{Greedy Algorithms}
 
 \subsection{A Scheduling Problem}
 
@@ -1317,7 +1317,7 @@ argue that $A$ was a max-weight maximal independent set.
 
 
 
-\section{2/7/2013: Minimal Spanning Trees and Matroids}
+\section{Minimal Spanning Trees and Matroids}
 
 Recall that, given an undirected graph $G=(V,E)$, we construct a graphic
 matroid from it by the set $(E,\I)$, with $A\in\I$ iff $A$ is acyclic.
@@ -1416,15 +1416,16 @@ rather than considering matroids in full generality, because we can
 often get faster algorithms for specific types of matroids.
 
 
-\section{2/7/2013 (cont): Amortized Analysis}
+\section{Amortized Analysis}
 
 Amortized analysis is typically used in settings where the cost of
-operations is nonuniform: we ask, if we spend $k$ operations, what sort
-of bounds can we put on performance.
+operations is nonuniform.
+We ask, if we perform any $k$ operations, what sort
+of bounds we can put on performance.
 So we may have some operations that are much more expensive than others, but
 nevertheless we may be able to bound the overall cost as being less than the 
-pessimistic estimate (wherein we upper-bound
-every single operation by the worst-case performance).
+pessimistic estimate (where we upper-bound
+every operation by the worst-case performance).
 
 There are different methods of amortized analysis:
 \begin{enumerate}
@@ -1468,9 +1469,8 @@ There are different methods of amortized analysis:
 	the change in potential.
 	
 	So if an operation changes the state of the data structure from
-	$D$ to $D'$, then the change in potential is $\phi(D') - \phi(D)$, with
-	$\phi$ the potential.
-	
+	$D$ to $D'$, then the change in potential is $\Phi(D') - \Phi(D)$, with
+	$\Phi$ the potential.
 	We'll use the potential function to make sure the amortized costs all
 	look similar, making it easy to add up the amortized cost.
 	
@@ -1483,13 +1483,13 @@ There are different methods of amortized analysis:
 	our operations is $D_0, \ldots, D_k$.
 	When we sum the total amortized cost, we get the potential telescoping: 
 	the sum
-	of the potentials is 
+	of the $\Delta\Phi$'s is 
 	$$
 	\phi(D_1) - \phi(D_0) + \phi(D_2) - \phi (D_1) + \ldots
 	= \phi(D_k) - \phi(D_0)
 	$$
 	which gives us that the total amortized cost is the
-	total cost plus the final potential ($\phi(D_k)$ minus the initial potential ($\phi(D_0)$).
+	total cost plus the final potential $\Phi(D_k)$ minus the initial potential $\Phi(D_0)$.
 	
 	Usually, the initial potential is $0$, and the final potential is
 	typically nonnegative; this means that the total amortized cost,
@@ -1575,7 +1575,7 @@ flip a lot of 1's to 0's), but they're usually cheap.
 We'd hope that, over a large sequence of $k$ increments, our total cost
 would be $O(k)$.
 
-Concretely, we imagine our counter having an infinite number of bits going
+Concretely, our counter has an infinite number of bits going
 off to the left.
 The first increment will take cost 1; the next will take 2 (we have to
 flip 2 bits); the third will flip 1 bit; the next 3; and so on.
@@ -1708,18 +1708,18 @@ fine, just a side-product of the funny math going on.)
 
 
 
-\section{2/19/2013: Splay Trees}
+\section{Splay Trees}
 
 \subsection{Motivation, definition}
 
 Recall an ordinary Binary Search Tree. 
 There, we have the invariant that, at any subtree, the value of its root
-is $\geq$ any value in its LHS subtree and $<$ any element in its RHS subtree.
+is $>$ any value in its LHS subtree and $<$ any element in its RHS subtree.
 Doing an inorder traversal gives us the elements in sorted order.
 
-The operations that we want to be able to insert are Find, Insert, and Delete.
+The operations that we want are Find, Insert, and Delete.
 In general, these can be expensive: in the degenerate case, a BST can 
-devolve into a linked list, and Find/Insert/Delete can take linear time.
+devolve into a linked list, and Find/Insert/Delete all take linear time.
 That is, these operations are all $\Omega(n)$ worst case.
 
 We therefore consider various ``balanced'' binary search trees, like
@@ -1778,7 +1778,7 @@ What is a splay tree?
 			Then we move $x$ to the top, putting $y$ on its right, and $z$
 			on $y$'s right (and moving the subtrees as appropriate).
 	\end{enumerate}
-	A splay operation at $x$, then repeatedly performs splay steps on $x$
+	A splay operation at $x$ then repeatedly performs splay steps on $x$
 	until it is at the root.
 	If $x$ is a child of the root, then we do the first thing.
 	If $x$ is at least 2 levels away from the root, then we will land in
@@ -1802,7 +1802,6 @@ What is a splay tree?
 	Once you reach a point where you would branch into an empty subtree,
 	just insert it there.
 	We then splay the newly inserted item to the root.
-	That is, we again do the BST thing up to the root.
 	
 	\item
 	\textbf{Delete}: This one's a bit more hairy so we don't talk about it
@@ -1816,7 +1815,7 @@ What is a splay tree?
 
 We give a potential function argument to argue that a series of find
 operations is amortized logarithmic.
-Defined the rank of $x$, denoted $r(x)$, as the floor of the base-2 log
+Define the rank of $x$, denoted $r(x)$, as the floor of the base-2 log
 of the size of the subtree rooted at that node.
 Note that ``size'' here means ``number of nodes'', not ``height''.
 
@@ -1853,7 +1852,7 @@ Consider the third operation, zig-zig.
 Note that the potential doesn't change at almost every node in the tree.
 The only nodes where the contributions to the potential may have changed
 are the nodes $x$, $y$, and $z$ involved in the zig-zag.
-The chagne in $\Phi$ is
+The change in $\Phi$ is
 $$
 c (r'(x) + r'(y) + r'(z) - (r(x) + r(y) + r(z)).)
 $$
@@ -1963,7 +1962,7 @@ $c/2 = c_0 + c_1$.
 ------------------------------
 
 For insertion and deletion , the argument ends up being very similar.
-Note inerstion is tricky: we potentially add anotehr element, and so
+Note insertion is tricky: we potentially add another element, and so
 every single node on its path might have its potential increased.
 A naive argument will give us an insertion perhaps increasing our potential
 by $\Theta(n)$; however, if we notice that adding a new node can only
@@ -1975,7 +1974,7 @@ arrive at potential at most log $n$ (why???).
 
 
 
-\section{2/21/2013: Augmented Binary Search Trees}
+\section{Augmented Binary Search Trees}
 
 \subsection{Example 1: Dynamic Order Statistics}
 
@@ -2178,13 +2177,13 @@ example.
 
 \section{Van Emde Boas Trees}
 
-(This is Chapter 20 in the 3rd edition of CLRS.)
+(Chapter 20 in the 3rd edition of CLRS.)
 
 A Van Emde Boas tree is a data structure that can substantially outperform
 red-black trees in some situation.
 Following the text, we want to support an operation MEMBER (return 1 if
 key in set, 0 otherwise); we won't be considering auxiliary data,
-but we could perhaps also store auxiliary data, and modify FIND to return a 
+but we could perhaps also store auxiliary data, and modify MEMBER to return a 
 pointer to it.
 That is, we're building something that does set membership, rather than
 an efficient map.
@@ -2204,7 +2203,7 @@ However, finding the SUCCESSOR is $O(u)$ (we could have to examine many bits
 before finding a 1).
 Similarly with PREDESSOR, MIN, and MAX.
 
-A variation of the above would be to superimpose a binary stree structure
+A variation of the above would be to superimpose a binary tree structure
 on the bit vector: We could store a $\log u$ binary tree, where
 an intermediate node of value 0 means ``there are no leaf nodes with 1 below
 this node''.
@@ -2406,7 +2405,7 @@ For the code of INSERT and DELETE, consult chpt 20 of CLRS.
 
 
 
-\section{2/28/2013: Union Find}
+\section{Union Find}
 
 Here, we'll get something growing much more slowly than even $O(\log\log u)$;
 in fact, we'll get an inverse Ackermann-growing function.
@@ -2463,7 +2462,7 @@ That is, if we traverse a path of length 100 to get to the root, we make
 99 elements that didn't used to point to the root point directly at it.
 Subsequently, FIND on any of those elements will be very cheap (assuming
 we haven't done too many intermediate UNION operations).
-This gives us pertty good performance by itself.
+This gives us pretty good performance by itself.
 
 
 Second, we have \textbf{union by rank}.
@@ -2732,7 +2731,7 @@ will be gray.
 	\item If $v$ is white, then $(u,v)$ is a tree edge.
 	\item If $v$ is gray, then $(u,v)$ is a back edge.
 	\item If $v$ is black, then $(u,v)$ is a forward or cross edge.
-	It's a forward edge of $d(u) < d(v) < f(v) < f(u)$, and is
+	It's a forward edge if $d(u) < d(v) < f(v) < f(u)$, and is
 	a cross edge otherwise.
 	This uses the fact that $v$ is a descendent of $u$ in the forest defined
 	by tree edges iff $d(u) < d(v) < f(v) < f(u)$; that is, it's a forward
@@ -2740,7 +2739,7 @@ will be gray.
 	
 	Note that cross edges either go from a node to a non-descendent node in
 	the same arborescence, or from one of the trees to a different 
-	previous-discovered tree.
+	previously-discovered tree.
 \end{itemize}
 We give four little applications of DFSs:
 \begin{itemize}
@@ -2787,7 +2786,7 @@ both gray, this will be a back edge (THIS ARGUMENT ISN'T QUITE RIGHT).
 \item
 \textbf{Topological sort of a DAG:}
 Suppose we know we have a DAG.
-Our goal is to order the vertices so taht all the edges go from left to
+Our goal is to order the vertices so that all the edges go from left to
 right (that is, if $(u,v) \in E$, then $u\leq v$ in the ordering).
 This is easy: run a DFS, and sort the nodes in descending order of
 finish time.
@@ -2814,8 +2813,8 @@ the vertices.
 \textbf{Computing strongly connected components of a graph:}
 Doing a DFS gives us a collection of arborescences spanning the entirety 
 of the graph $G$.
-Note that the cross-edges all have to go from ``right to left'' from later-
-discovered trees to earlier-discovered trees (otherwise, then the
+Note that the cross-edges all have to go from ``right to left'' from 
+later-discovered trees to earlier-discovered trees (otherwise, then the
 rightmost tree would have been a part of the leftmost tree).
 
 A strongly connected component with a component $v$ contains just those vertices
@@ -2982,7 +2981,7 @@ $i$ edges.
 The Induction Hypothesis entails that $d_v^{(i)}$ is the length of $P'$.
 By the definition of $d_v^{(i+1)}$, we'll get the desired result.
 
-This algorithm is, I think, $O(|V| |E|)$ (Check this?)
+This algorithm is $O(|V| |E|)$.
 
 A tiny remark is that it's not necessary to maintain separate variables
 $d_u^{(i)}$ for each stage; we can just use $d_u$ variables.
@@ -3013,9 +3012,9 @@ We have
 $$
 0 \leq d_u + w(u, v) - d_v
 $$
-(why?! We get it I think because $d_v \leq d_u + v(u,v)$.)
+(why?! We get it I think because $d_v \leq d_u + w(u,v)$.)
 
-So we have $\widehat G$ with nonneative edge weights; we can use Dijkstra's
+So we have $\widehat G$ with nonnegative edge weights; we can use Dijkstra's
 algorithm $|V|$ times to compute APSP in $\widehat G$ in
 $ O(|V|  |E| + |V|^2\log |V|)$
 time, which is fine.
@@ -3110,7 +3109,7 @@ $$
 \sum_{u\in S} \sum_{v \in S} f(u,v) - f(v,u) = 0
 $$
 
-WE have that the flow across $(S,T)$ is equal to itself plus the above,
+We have that the flow across $(S,T)$ is equal to itself plus the above,
 which is equal to
 $$
 \sum_{u\in S}
