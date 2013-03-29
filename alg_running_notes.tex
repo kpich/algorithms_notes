@@ -2656,7 +2656,7 @@ insight as to why only the topmost level-7 node might be problematic.
 This, further, supplies the insight for why the prose-language expression
 inside the big-$O$ above is $\leq\alpha(n)$.
 
-WE need also think about the amortized cost of a LINK operation.
+We need also think about the amortized cost of a LINK operation.
 Supposing we link $x$ and $y$ with $r(x) \leq r(y)$, then $\phi(x)$ cannot
 increase, but $\phi(y)$ could increase, I think by $\alpha(n)$ for some
 reason.
@@ -3173,12 +3173,12 @@ That is, for nodes $u,v$, we have flow values $f(u,v)$
 and $f(v,u)$, and $c(u,v)$ and $c(v,u)$. Considering only these values, what
 is a naive upper-bound on the amount of increase in the net flow being pushed
 from $u$ to $v$ along these edges?
-WEll certainly, we can increase flow from $u$ to $v$ by
+Well certainly, we can increase flow from $u$ to $v$ by
 $$
 c(u,v) - f(u,v)
 $$
 which uses up unused capacity.
-WE can also eliminate any flow going from $v$ to $u$, which would
+We can also eliminate any flow going from $v$ to $u$, which would
 increase the net flow; the most we can do so is
 $$
 f(v,u).
