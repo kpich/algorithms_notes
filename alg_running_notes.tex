@@ -3745,7 +3745,8 @@ So the rest of this section is incomplete. Consult CLRS on the matter.
 
 \section{The Hopcroft-Karp algorithm for bipartite maximum cardinality matching}
 
-Suppose we have a bipartite graph with sets $U$ and $V$ of edges.
+Suppose we have a bipartite graph with sets $U$ and $V$, with edges $E$ between
+$U$ and $V$.
 A \textbf{matching} is a set of edges from the graph such that the edges
 go from $U$ to $V$ (or vice versa), and no single vertex is incident on more 
 than one edge.
@@ -3779,18 +3780,18 @@ each iteration.
 We'll generally take a matching-based view of the algorithm, rather
 than a flow-based view; however, both make sense.
 
-What we do is iteratively improve our current matching (the empty matching
+We iteratively improve our current matching (the empty matching
 initially) by ``flipping'' edges (matching to unmatched; vice versa)
 along an alternating path (which alternates matched/unmatched edge)
 from an unmatched left vertex to a matched right matching.
 
 That is, an alternating path alternates between $U$ and $V$, and it 
-alternates between matched/unmatchd vertex.
-Suppose a path starts and ends with an unmatched path. Supposing
+alternates between matched/unmatched vertices.
+Suppose a path starts and ends with an unmatched vertex. Supposing
 it starts in $U$ and ends in $V$, then flipping this path will
 increase the cardinality of the matching by exactly 1.
 
-(This has an analogous interpretation in the matching-based view too:
+(This has an analogous interpretation in the flow-based view too:
 an augmenting path is one that goes back and forth between $U$
 and $V$ between edges with $(u,v)$ having flow 1 and edges with $(v,u)$ having
 flow 1, I think).
@@ -3952,8 +3953,246 @@ dead-end on our path back to the start.
 
 
 
+\section{Scaling algorithms for SSSP}
+
+Recall $m$ is the number of edges, $n$ is the number of vertices in a graph.
+Letting $U$ be the max edge weight, we can ger running time
+$$
+O(m \log_{2 + m / n} U).
+$$
+Gabow (1985) give a result like this; he has a 1989 paper with Tarjan that
+improves on this.
+Note that if we can bound $U$ by, e.g., $n^{10}$, then the logarithmic term
+is just a constant.
+
+We don't go through the Gabow construction, as it's a bit tricky.
+However, we'll talk a bit about scaling algorithms for SSSP in general.
+
+A naive implementation of Dijkstra's algorithm is $O(m\log n)$ (which is 
+$O(|E| \log |V|)$).
+This is the solution where we use a simple heap to implement the priority
+queue.
+Using a faster pqueue (e.g. a Fibonacci heap or a relaxed heap), we
+get Disjkstra's algorithm down to $O(|E| + |V|\log|V|) = O(m + n\log n)$.
 
 
+\subsection{Algorithm 1}
+
+Let $d_i$ be the desired shortest path distance from $s$ to $i$.
+
+This algorithm is based on the notion of a $z$-near optimum solution,
+which is a set of nonnegative integers $e_i$ such that
+%\begin(itemize}
+%	\item hi
+%%%	$e_{s} = 0$.
+%%%	
+%%%	\item[(2)]
+%%%	$\forall(i,j) \in E$, we have $e_i + \ell_{ij} \geq e_j$, with 
+%%%	$\ell_{ij}$ the length of $(i,j)$.
+
+%	\item[(3)]
+%	Each vertex $i$ has a path from $s$ of length between $e_i$ and $e_i + z$.
+%\end{itemize}
+
+\begin{itemize}
+	\item
+	$e_{s} = 0$.
+	
+	\item
+	$\forall(i,j) \in E$, we have $e_i + \ell_{ij} \geq e_j$, with 
+	$\ell_{ij}$ the length of $(i,j)$.
+	
+	\item
+	Each vertex $i$ has a path from $s$ of length between $e_i$ and $e_i + z$.
+\end{itemize}
+Call these conditions (1), (2), and (3).
+
+We claim that forall $i$, we have $e_i \leq d_i$.
+Let $P$ be a shortest path to $i$.
+We have the inequality that $e_u \leq d_u$ (somehow); further, 
+condition (2) gives us that $e_u + \ell_{ui} \geq e_i$ (somehow).
+
+So for $P$ a shortest path, we have
+\begin{align}
+d_i
+&=
+d_u + \ell_{ui}
+\\
+& \geq
+e_u + \ell_{ui} \\
+& \geq
+e_{i}
+\end{align}
+I was wrestling with fucking TexShop, so missed this proof.
+
+Now, we construct a modified graph $G'$ with edge weights
+$$
+\ell_{ij}' = e_i + \ell_{ij} - e_j \geq 0
+$$
+where we get nonnegativity by (2).
+Similar to what we had in Johnson's APSP algorithm, the modified edge
+lengths preserve shortest paths; that is, paths from $s$ to $i$ are shifted
+by $-e_i$ (it's a similar concept to how it was before---add the weights for 
+the path weights,
+and you get a telescoping sum).
+
+So we can calculate shortest paths in $G'$, which has the nonnegative
+edge weight property; we can simply shift back:
+$$
+d_i = d_i' + e_i
+$$
+to get the shortest paths in the original graph $G$.
+
+We have the nice property that, with $d_i'$ the $d_i$'s in $G'$, that
+$$
+0\leq d_i' \leq z.
+$$
+If $z$ is ``small'' (for example, we will have $z = O(m)$), then we can 
+implement the priority queue of
+Dijkstra's algorithm in a trivial manner.
+In particular, we will us an array of linked lists, where the entry at
+index $t$ is a linked list giving all vertices with distance label $t$;
+we only have to maintain these up to $z$.
+Running Dijkstra's algorithm, then, we scan this from left-to-right: 
+rather than doing a delete from a pqueue (which will be $O(n)$), we'll
+just need to look at the bucket where we're currently working.
+
+Normally, we wouldn't be able to do this trick, because we could in general
+have to skip past a whole bunch of empty buckets; however, now since we
+have $O(m)$ buckets, the total cost of the delete-min operations will be
+linear.
+
+First, we'll show an $O(m\log_2 U)$ algorithm; we'll then show the result
+claimed at the beginning of this section.
+
+First, look at all edge weights; if all of them are $\leq m/n$, then set
+each $e_i= 0$.
+This is $m$-near-optimum: looking at conditions (1)--(3), we see they
+are all satisfied.
+Otherwise, we will modify $G$ to obtain $\overline G$, where
+$$
+\overline\ell_{ij} = \lfloor \ell_{ij} / 2\rfloor
+$$
+where $\overline G$ has the same structure as $G$.
+Calculate the $\overline d_i$'s recursively (if the edge weights
+are small, do it the fast weight, otherwise perform the $\overline G$
+operation again).
+
+Now, let $e_i = 2\overline d_i$.
+We claim the the $e_i$'s are $m$-near-optimum:
+\begin{enumerate}
+	\item
+	(1): $e_s= 0$, trivially.
+	\item
+	(2): We have $\overline d_i + \overline \ell_{ij} \geq \overline d_j$,
+	since the path distances satisfy condition (2).
+	Multiplying the above by 2 gives us
+	$2 \overline d_i + 2 \overline \ell_{ij} \geq 2 \overline d_j$.
+	Since we have $\ell_{ij} \geq 2 \overline \ell_{ij}$,
+	we get
+	$2 \overline d_i +  \ell_{ij} \geq 2 \overline d_j + 2 \overline d_{ij}
+	\geq 2 \overline d_j = e_j$.
+	
+	\item
+	(3) we must show $d_i \leq e_i + n$ (we'll actually show it's 
+	$n$-near-optimal); note that $e_i = 2\overline d_i$.
+
+	Consider a shortest path from $s$ to $i$ in $\overline G$; by definition,
+	its length is $\overline d_i$.
+	Consider an edge $(u,v)$ on this path. We have
+	$\ell'_{uv} = \lfloor \ell_{uv} / 2 \rfloor$.
+	We therefore have
+	$$
+	2\ell_{uv}' \leq
+	\ell_{uv} \leq 2\ell'_{uv} + 1
+	$$
+	That is, $\ell_{uv}$ is either $2\ell_{uv}'$ or $2\ell_{uv}' + 1$.
+	So the path $P$ in $G$ is the sum of the $\ell_{uv}$'s; since
+	each $\ell'_{uv}$ is that or that + 1, then we have $P$ with length
+	$\leq 2\overline d_i + n - 1$ (what? why? what?)
+	
+	We therefore have that $d_i \leq 2\overline d_i + n - 1$.
+\end{enumerate}
+At each level of the recurrence, we'll be spending $O(m)$ time to obtain
+the $d_i$'s from the $\overline d_i$'s; there are $\log_2 U$ levels, since
+after that many iterations, we'll be dealing with 1-bit numbers. Overall,
+then, we have $O(m\log_2 U)$ time.
+
+
+We can improve this to $O(m \log_{2 + m/n} U)$ time.
+Intuitively, instead of dividing the $\ell_{ij}$'s by 2 at each
+stage, we'll instead divide by $2 + m/n$; if the graph is somewhat
+dense, then this is a significantly bigger reduction at each step.
+
+If we divide by $x = 2 + m/n$, (that is $\overline \ell_{ij} = \lfloor
+\ell_{ij} / x\rfloor$), then we'll be able to claim that
+$e_i = x\cdot \overline d_i$ is $m$-near optimal (rather than $n$-near-opt).
+
+At one step, we incur an error of at most $x$ (that is 
+$$
+\ell_{uv} \leq (x + 1) \overline \ell_{uv})
+$$
+Thus, since we have $n$ vertices, then the ``z'' that we have $z$-near-optimum 
+for is approximately
+$nx = \Theta(m)$.
+
+
+
+
+\subsection{Algorithm 2}
+
+The last algorithm had the property that we were working with potentially very
+large numbers: $\log U$ could be potentially much larger than $\log n$.
+
+We have $k$-bit $\ell_i$'s, where $k$ is approximately $\log U$.
+Write $\ell_i$ out as its bits $b_1,\ldots, b_k$, with $b_1$ the highest-order
+bit.
+
+\begin{itemize}
+
+\item
+We first view the weights as their MSB's, the $b_i$'s. Call that graph $G_1$.
+We then compute the $d_i'$'s in $G_1$.
+That is, 
+$$
+\ell_{ij}^{(1)} = b_1
+$$
+where $b_1$ stands for the MSB from the appropriate weight.
+
+\item
+We next scale as follows:
+$$
+\ell_{ij}^{(2)} =
+2(d_i' + \ell_{ij}^{(1)} -d_j') +
+ b_2
+$$
+This is better than the obvious thing to do, which is
+$$
+\ell_{ij}^{(2)} =
+2 \ell_{ij}^{(1)} +
+ b_2.
+$$
+Using the first scheme, we get the numbers confined to a much smaller range;
+in the latter, more obvious scheme, we get possibly very large numbers.
+
+\end{itemize}
+
+The key claim is that
+$$
+\forall t. 1\leq t \leq k\left[
+	d_i^k = O(n)
+\right]
+$$
+So at each stage, we can run Dijkstra's algorihm where all the weights are 
+$O(n)$. Or something.
+
+We can show without too much difficulty that
+$$
+d_i = \sum_{t = 1}^k 2^{k - t} d_i^t
+$$
+That is, once we've calculated $d_i^t$ for all the different stages $t$, we
+can somewhat easily arrive at the numbers we're actually interested in 
+computing.
 
 
 
