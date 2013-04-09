@@ -17,6 +17,9 @@
 \newcommand{\beq}{\begin{equation}}
 \newcommand{\eeq}{\end{equation}}
 
+\newcommand{\bitem}{\begin{itemize}}
+\newcommand{\eitem}{\end{itemize}}
+
 
 \begin{document}
 
@@ -3595,69 +3598,362 @@ we get a positive drop.
 
 
 
+\subsection{Relabel-to-Front algorithm for max-flow}
+
+This is a particular implementation of push-relabel, pushing the
+pushes/relabels in a better, particular way---this will allow us to make
+stronger guarantees than we had before.
+
+Recall, above, we had $O(|V|^2|E|)$ as a bound on the number of
+nonsaturating pushes (which is bad if $|E|\approx|V|^2$; here we'll
+get an $O(|V|^3)$ bound.
 
 
-%What we do here, intuitively, is start at the source, push out to its 
-%neighbors, and have each vertex push its excess flow to its neighbors 
-%(where excess flow is defined as the amount of flow you received that you
-%can't push out); after this propagates forward to $t$, the excess
-%is propagated back to $s$, giving us a max-flow.
-%Eventually we'll get a flow (which is a real flow), but during intermediate
-%steps, we'll have a preflow.
-%
-%
-%
-%%Further, define $h(u)$ to be the nonnegative height of $u$;
-%%For every $v$ with $(u,v) \in E_f$, we will require that
-%%$$
-%%h(u) \leq h(v) + 1.
-%%$$
-%
-%Whenever we push flow to another neighbor, we'll require two conditions.
-%First, there must be an edge to the neighbor in the residual graph; second,
-%that neighbor's height must be 1 lower than our height.
-%
-%We define an operation push$(u)$, that we can call whenever $u$ is 
-%overflowing (that is,
-%$e(u) > 0$), and there is an edge $(u,v)\in E_f$ for some $v$ such that
-%$h(u) = h(v) + 1$.
-%The push operation moves some excess from $u$ to $v$; the amount we push
-%is defined by $e(u)$ and the residual capacity on the edge between them.
-%In particular,
-%$$
-%\Delta f(u,v) = \min\{
-%	e(u), c_f(u,v)
-%\}.
-%$$
-%We have $e(u) -= \Delta f$, and $e(v) += \Delta f$; further, we adjust
-%the residual graph.
-%
-%There is another operation, called relabel$(u)$, which changes the height
-%of $u$.
-%We can call it only when $u$ is overflowing and, for all neighbors with
-%$(u,v) \in E_f$, we have $h(u) \leq h(v)$.
-%(Note that if you can push, then you won't be able to relabel; you can
-%relabel exactly when you can't push your excess to anyone else---all
-%your neighbors are really high.)
-%To relabel, we adjust our height in a way that allows us to push again:
-%$$
-%h(u) \gets
-%1 + \min\{ h(v) : (u,v) \in E_f\}.
-%$$
-%This will allow you to push to your lowest-height neighbor.
-%
-%With these in hand, the algorithm is easy to define: 
-%\begin{enumerate}
-%	\item
-%	Initialize preflow: assign $0$ height to all vertices except for the
-%	source, which gets $h(s) = |V|$; then, the source saturates every
-%	outgoing edge (that is, $f(u,v) = c(u,v)$ if $u=s$, $0$ otherwise).
-%	
-%	\item
-%	While there is an operation we can perform (either push or relabel), we
-%	can either push or relabel.
-%\end{enumerate}
-%Once we terminate, we will have a proper flow which happens to be the max flow.
+We'll be working with a flow network $G$, a preflow $f$ in $G$ 
+(recall this means that the net flow into any non-source node $\geq 0$);
+we'll have a height function $h$ such that $h(s) = |V|$, $h(t)= 0$, and,
+crucially, the property that if $c_f(u,v) > 0$, then $h(u) \leq h(v) + 1$.
+
+We call a valid $(h,f)$ a ``configuration''.
+
+Define an \textbf{admissible edge} $(u,v)$ to be one with
+$c_f(u,v) > 0$ (ther eis residual capacity), and $h(u) = h(v) + 1$.
+Note that if $u$ is overflowing and $(u, v)$ is admissible, then
+push($u,v$) can be applied.
+
+An \textbf{admissible network} is a digraph with vertex set $V$ and the
+edge set equal to the set of admissible edges.
+(Note it's not necessarily a subgraph of $G$, since we could have edges $(u,v)$
+in the admissible network not present in $G$---they may correspond to edges
+$(v,u)$ along which we can remove flow.)
+
+We have the \textbf{lemma} that the admissible network is a DAG---this is
+pretty straightforward to see, since each edge $(u,v)$ must see one step
+decrease in $h$, and when we get back to the beginning, we have a 
+contradiction.
+
+We have the \textbf{lemma} that if $(u,v)$ is admissible and $u$
+is overflowing, then PUSH$(u,v)$ is applicable and the operation:
+\begin{enumerate}
+	\item
+	Does not add any edge to the admissible network.
+
+	\item
+	Might remove $(u,v)$ from the admissible network (because $c_f(u,v)$
+	is now 0).
+\end{enumerate}
+Point (1)---that push doesn't create any new admissible edge---is true because
+the only way that a Push might affect an edge $(u,v)$'s admissibility in 
+that $(u,v)$'s residual capacity gets decreased, or $(v,u)$'s gets
+decreased.
+So we might remove $(u,v)$ because $c_f(u,v)$ is now zero (that is, it's
+a saturating push---this gives us (2) above).
+Edge $(v,u)$, on the other hand, can't become admissible as the result of a 
+push.
+This is so because we require that $h(v) = h(u) + 1$ for $(v,u)$ to be
+admissible; however, if we push from $u$ to $v$, then we must have that
+$h(u) = h(v) + 1$.
+Thus, no push can add edges to the admissible network.
+
+We have the \textbf{lemma} that if $u$ is overflowing and there
+are no admissible edges leaving $u$, then a RELABEL operation is applicable for
+$u$.
+Further, performing this operation
+\begin{enumerate}
+	\item
+	Results in $\geq 1$ admissible edge leaving $u$
+
+	\item
+	Results in 0 admissible edges entering $u$.
+\end{enumerate}
+Why? Suppose, for example, $h(u) = 10$, and $u$ is overflowing (so there's
+some positive flow coming in.
+In other words, we have residual capacity to some neighbors $v_1, \ldots, 
+v_k$, with
+$c_f(u,v_i) > 0$.
+We know that $h(v_i) \geq 9$ for all the $v_i$'s; otherwise our height
+contraint would be violated.
+If there are no admissible edges leaving $u$, however, then we know that
+$h(v_i) = \geq 10$.
+So we'll relabel $h(u)$ to 1 plus the max of the $h(v_i)$'s, after which
+there will be an admissible edge leaving $u$.
+We know that the height of $u$ will strictly increase; by the
+height constraint, we get condition (2) above through some argument I don't
+entirely understand.
+
+We have that each vertex $u$ has:
+\begin{enumerate}
+	\item
+	$u.N$, the neighbor list (that is, all $v$ such that $(u,v)\in E$ or
+	$(v,u)\in E$).
+	In other words, this is all $v$ such that $c_f(u,v)$ might be positive,
+	for some $f$.
+	
+	\item
+	$u.$CUR; a pointer to $u.N$, where $u.$CUR being NIL means ``end of 
+	list''.
+\end{enumerate}
+
+We have a function DISCHARGE($u$), defined as follows
+
+DISCHARGE$(u)$
+\begin{itemize}
+	\item
+	WHILE $u$ is overflowing
+		\begin{itemize}
+			\item
+			$v = u.$CUR
+			
+			\item
+			IF $(v == NIL)$:
+				\begin{itemize}
+					\item
+					RELABEL($u$)
+					
+					\item
+					$u.$CUR = $u.N.$HEAD
+				\end{itemize}
+			
+			\item
+			ELSE IF $c_f(u,v) > 0$ and $h(u) = h(v) + 1$ (that is, $(u,v)$
+			is admissible):
+				\begin{itemize}	
+					\item
+					PUSH$(u,v)$
+				\end{itemize}
+			\item
+			ELSE
+				\begin{itemize}
+					\item
+					$u.$CUR = $v.$NEXT-NEIGHBOR
+				\end{itemize}
+		\end{itemize}
+\end{itemize}
+Note that $v.$NEXT-NEIGHBOR refers to the successor of $v$ in $u.N$.
+
+We need go argue that if relabel$(u)$ is called, then there are no
+admissible edges outgoing from $u$.
+Suppose that when DISCHARGE($u$) is called, then $u.$CUR is pointing
+to the HEAD of $u.N$.
+I didn't follow this argument at all, augh, check CLRS.
+
+Note we didn't spell out the top-level code, but we will say that, initially,
+we set $u.$CUR to $u.N.$HEAD.
+
+So the rest of this section is incomplete. Consult CLRS on the matter.
+
+
+\section{The Hopcroft-Karp algorithm for bipartite maximum cardinality matching}
+
+Suppose we have a bipartite graph with sets $U$ and $V$ of edges.
+A \textbf{matching} is a set of edges from the graph such that the edges
+go from $U$ to $V$ (or vice versa), and no single vertex is incident on more 
+than one edge.
+The \textbf{cardinality} of a matching is the number of edges in it.
+
+Note we will use $m$ to be the number of edges in a bipartite graph (aka $|E|$)
+and $n$ is the number of vertices $(|U| + |V|)$.
+
+We can use, e.g., Ford-Fulkerson to get an $O(mn)$ bound for
+maximum cardinality matching.
+(We'll give an $O(\sqrt n m)$ solution.
+
+The simple algorithm is as follows.
+For each edge in $E$, we create an edge with capacity equal to 1.
+We also create a source $s$ with edges of capacity 1 pointing to all edges
+in $U$; we also make a sink $t$ pointed to by all edges in $V$.
+It's not tough to show that max-cardinality matching is equal to finding
+max flow in the new network.
+The flow you'd get from Ford-Fulkerson consist of length-3 paths
+that are vertex-distinct, except for at $s$ and $t$ (think about this).
+
+Ford-Fulkerson is in general pseudopolynomial; however, here, the capacities
+are all of unit size; since Ford-Fulkerson was $O(f^*)$, and $f^*$ is 
+clearly $O(n)$ here (consider the cut $(s, U \cup V)$, then our algorithm will be $O(mn)$.
+
+What we'll do, then, is reduce the number of iterations to $O(\sqrt n)$ by
+finding multiple augmenting paths each iteration (instead of just one).
+As we did in Edmonds-Karp, we'll only seek the shortest augmenting paths
+each iteration.
+
+We'll generally take a matching-based view of the algorithm, rather
+than a flow-based view; however, both make sense.
+
+What we do is iteratively improve our current matching (the empty matching
+initially) by ``flipping'' edges (matching to unmatched; vice versa)
+along an alternating path (which alternates matched/unmatched edge)
+from an unmatched left vertex to a matched right matching.
+
+That is, an alternating path alternates between $U$ and $V$, and it 
+alternates between matched/unmatchd vertex.
+Suppose a path starts and ends with an unmatched path. Supposing
+it starts in $U$ and ends in $V$, then flipping this path will
+increase the cardinality of the matching by exactly 1.
+
+(This has an analogous interpretation in the matching-based view too:
+an augmenting path is one that goes back and forth between $U$
+and $V$ between edges with $(u,v)$ having flow 1 and edges with $(v,u)$ having
+flow 1, I think).
+
+So suppose our current matching $M$ is not a max-cardinality matching.
+How do we know that we can find an augmenting path for the matching $M$?
+Suppose $|M| = k$, and let $M^*$ be a matching with $|M^*| = \ell> k$.
+Consider $M \oplus M^*$, with $\oplus$ the XOR operations: the XOR of the
+two sets is the set of edges that occur in exactly one of $M$ and $M^*$.
+The bipartite graph $(U,V,M\oplus M^*)$ consists of vertex-disjoint
+alternating paths and cycles: a path in this graph will alternate
+between paths from $M$ and paths from $M^*$: it could be that a vertex has
+two edges incident on it, but one of them will come from $M$, and the other
+from $M^*$ (why?).
+
+The cycles are of even length, and have equal contributions from $M$ and $M^*$.
+Also, there must be at least $\ell-k$ paths corresponding to vertex-disjoint
+augmenting paths in $M$; each of them will be of odd length (I think? WHY?).
+That is, augmenting paths must exist if $M$ isn't an MCM (max-cardinality 
+matching).
+How do we efficiently find these augmenting paths, though? 
+
+The Hopcroft-Karp algorithm is as follows.
+\bitem
+	\item
+	$M = \emptyset$
+	
+	\item
+	while there is an augmenting path WRT $M$:
+		\bitem
+			\item
+			Find a maximal set of shortest vertex-disjoint augmenting
+			paths WRT $M$ (call these $P_1, \ldots, P_k$).
+			
+			\item
+			Augment $M$: $M = M \oplus (\bigcup_i P_i)$
+		\eitem
+\eitem
+Note that the ``maximal set'' referred to above is ``maximal'' in the sense
+that there are no other vertex-disjoint augmenting paths; a bigger one
+may exist---maximal here doesn't mean ``largest cardinality''.
+
+We have the following \textbf{lemma}:
+Let $\ell_i$ be the length of the shortest augmenting path in
+iteration $i$; then $\forall i. \ell_{i + 1} > \ell_i$; that is, the
+shortest-augmenting-path-lengths are strictly increasing.
+(proved later)
+
+After $\sqrt n$ iterations, the shortest augmenting path will be of length 
+$\sqrt n$; once we reach this path, we can argue that even if we were to
+just use Ford-Fulkerson until we get an MCM, we'll be done within $\sqrt n$
+iterations.
+If we're $k$ away from a MCM; then there exist $k$ vertex-disjoint augmenting
+paths, each of which is of length at most $\sqrt n$, so $k$ is at most
+$\sqrt n$ (what?). In other words, our current matching size is within
+$\sqrt n$ of an MCM.
+
+So the two things we need to do are (1) prove the above lemma; (2) show how we 
+can find a maximal set of shortest vertex-disjoint augmenting paths
+in $O(m + n)$ time.
+
+Let's think about (2).
+Finding a single shortest augmenting path isn't too tough.
+Supposing we have some unmatched vertices in $U$ (and some in $V$); we
+start with the unmatched ones in $U$, and look at all their neighbors
+in the graph.
+If one of them were connected directly to an unmatched vertex in $V$, then 
+we would have found an augmenting path of length 1; otherwise, we
+have an edge from an unmatched $U$ vertex to a matched one in $V$; by definition,
+we'll follow the outgoing edge from this node into the matched set in $U$;
+we'll next examine all the neighbors of that node.
+So what we have is a BFS; however, when we reach a node in $V$, instead
+of following all outgoing edges, we only follow the matched edges into
+$U$ (recall we're looking for an alternating path, not just any path).
+
+Generalizing this to finding a maximal set of shortest augmenting
+paths is tricker.
+Suppose we've found a single shortest augmenting path. We then know
+the length.
+What we can do, then, is look at the unmatched vertexes in $V$; suppose
+our shortest-matching path length is 3; we'll look for edges back to the
+matched section in $U$ such that (1) the destination vertex in $u$ has
+label 1 minus 3, and (2) the path is vertex-disjoint from all the
+previously-found shortest-augmenting-paths.
+Thinking about this a bit shows it isn't too hard---we basically keep some
+extra data around in our initial BFS, and use it when we work backwards.
+
+Back to (1), proving the above lemma.
+Suppose $P_1,\ldots, P_k$ is a maximal set of vertex-disjoint shortest
+augmenting paths wrt $M$.
+Let $M'$ denote $M \oplus \cup_i P_i$, the matching after we've augmented
+it in an iteration.
+Let $P$ be a shortest augmenting path wrt $M'$.
+($P$ is a candidate for our next iteration; we need to show that the
+length of $P$ is greater than $\ell$.)
+
+Let $A = M \oplus M' \oplus P$, and let $M^* = M' \oplus P$.
+So, in other words, since $\oplus$ is associative, we have that
+$A = M\oplus M^*$.
+Let $|M| = s$; we have that $|M'| = S + k$, and $|M^*| = s + k + 1$.
+
+Recall that if we have a matching of cardinality $k$, and one of cardinality 
+$\ell > k$, then
+XORing them gives paths and cycles, with at least $\ell - k$ augmenting
+paths wrt the mathcing.
+In particular, with $A = M \oplus M^8$, we have that it 
+contains at least $( + k + 1 ) - s = k + 1$ vertex-disjoing
+augmenting paths wrt $M$. Each path has
+length $\geq \ell$, so we have that $|A| \geq \ell(k + 1)$.
+
+We associate $A$ the other direction: since $M\oplus M' = \cup_i P_i$, 
+we have $A = (\cup_i P_i) \oplus P$. Since each $P_i$ has exactly
+$\ell$ edges, and they're vertex-disjoint (and therefore edge-disjoint), 
+we know that 
+$$
+\left| \cup_i P_i \right| = k\ell.
+$$
+This, together with the fact that $|A| \geq \ell(k+1)$, imply that
+$|P| \geq \ell$.
+To show our result, we need to rule out the possibility that $|P| = \ell$.
+Assume $|P| = \ell$.
+There are two cases:
+\bitem
+	\item
+	$P$ is vertex-disjoint from all the $P_i$'s.
+	Then the $P_i$'s are not a maximal set: you could put $P$ in there
+	and have a larger set.
+	
+	\item
+	There is some $i$ such that $P$ shares a vertex with $P_i$.
+	Let $u$ be the necessary vertex that belongs to both $P$ and $P_i$.
+	Since $u\in P_i$, then $u$ is matched in $M'$.
+	This is so because, after augmenting along a path $P_i$, then every
+	single vertex on the path $P_i$ is matched; thus, $u$ is certainly
+	matched.
+	Let $u$ have associated matched edge $(u,v)\in M'$.
+	$P$ is an augmenting math wrt $M'$; since $u\in P$, this implies that
+	the edge $(u,v)$ is on $P$ (no augmenting path stops at a matched
+	node and then doesn't follow the matched edge).
+	Therefore, $(u,v)$ was an unmatched edge in $M$, and is on $P_i$
+	(So $P_i$ flipped the edge $(u,v)$).
+	We have identified an edge on both $P$ and $P_i$.
+	Thus, the common edge $(u,v)$ will be dropped out of 
+	$A \equiv \cup_i P_i \oplus P$.
+	
+	In particular, if $|P| = \ell$ but has a nonempty intersection; then
+	the size of $A$ is less than $k\ell + \ell$ (since the cardinality of 
+	the $\cup_i P_i$ set is exactly $k\ell$; this contradicts the
+	already proven statement that $|A| \geq \ell(k + 1)$, and we have
+	a contradiction.
+\eitem
+
+Consult CLRS on how to find a maximal set of augmenting paths (I think
+it's in there?).
+Intuitively, at each node, we keep track of how many predecessors that
+node has in the BFS tree; when we remove a path, then, we decrease the
+predecessor counts appropriately; this prevents us from running into a 
+dead-end on our path back to the start.
+
+
+
+
+
 
 
 
