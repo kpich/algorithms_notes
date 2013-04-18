@@ -3965,15 +3965,13 @@ improves on this.
 Note that if we can bound $U$ by, e.g., $n^{10}$, then the logarithmic term
 is just a constant.
 
-We don't go through the Gabow construction, as it's a bit tricky.
-However, we'll talk a bit about scaling algorithms for SSSP in general.
 
 A naive implementation of Dijkstra's algorithm is $O(m\log n)$ (which is 
 $O(|E| \log |V|)$).
 This is the solution where we use a simple heap to implement the priority
 queue.
 Using a faster pqueue (e.g. a Fibonacci heap or a relaxed heap), we
-get Disjkstra's algorithm down to $O(|E| + |V|\log|V|) = O(m + n\log n)$.
+get Dijkstra's algorithm down to $O(|E| + |V|\log|V|) = O(m + n\log n)$.
 
 
 \subsection{Algorithm 1}
@@ -4007,7 +4005,7 @@ which is a set of nonnegative integers $e_i$ such that
 \end{itemize}
 Call these conditions (1), (2), and (3).
 
-We claim that forall $i$, we have $e_i \leq d_i$.
+We claim that for all $i$, we have $e_i \leq d_i$.
 Let $P$ be a shortest path to $i$.
 We have the inequality that $e_u \leq d_u$ (somehow); further, 
 condition (2) gives us that $e_u + \ell_{ui} \geq e_i$ (somehow).
@@ -4196,6 +4194,453 @@ computing.
 
 
 
+\section{Linear Programming}
+
+We're seeking to optimize a linear function subject to linear constraints.
+WLOG, we can assume the following form:
+\begin{itemize}
+	\item Maximize $c^Tx$
+	\item
+	subject to $Ax \leq b$ and $x \geq 0$.
+\end{itemize}
+
+We assume $c$ and $x$ are $n\times 1$, $b,y$ are $m\times 1$, and
+$A$, which is given, is $m\times n$.
+
+For example, suppose we're looking to maximize $3x_1 + 2x_2$, subject
+to the three constraints
+\begin{align*}
+	x_1 + x_2 & \leq 10 \\
+	x_1 & \leq 8 \\
+	x_2 & \leq 5 \\
+	x_1, x_2 &\geq 0
+\end{align*}
+There is a simple geometric view here: draw the various lines giving
+the constraints, and shade the appropriate halfplane---that gives us our 
+feasible region.
+We then consider the family of lines fo the form $3x_1 + 2x_2 = c$, and we
+ask what the highest value of $c$ is of such a line intersecting the feasible 
+region.
+Thsi value will be 28.
+
+There is, of course, the simplex method.
+Intuitively, it works as follows: we know that an optimal solution will occur
+at a vertex of the simplex. We greedily move from one vertex to the next, 
+looking for a solution.
+There are pathological cases where there are a ton of vertices, and we slowly
+spiral around to the optimal solution.
+
+It's not in general polynomial, but works quite well in practice.
+If we look at ``smoothed complexity'', however (not defined here), the
+simplex method has polynomial smoothed complexity.
+Intuitively, supposing we take an LP instance, and we perturb the numbers
+very slightly, then we ``break'' the pathological cases that are problematic
+for the simplex method. In other words, these pathological cases are not
+robust to noise---perturbing them slightly  makes simplex work fine.
+
+Note there are methods dating back to the 70s for solving arbitrary LP 
+instances in polynomial time (e.g. ellipsoid algorithm, interior
+point methods).
+Note that linear programming is a nice, powerful tool for showing problems
+to be polynomial-time solvable (e.g. multicommodity flow, where we have 
+various commodities flowing in our network, rather than just a single
+commodity).
+
+Note we could have put equality constraints in our formulation of LPs above,
+as we can model equalities as two inequalities.
+We could also have given the formulation with equalities, and modeled
+inequalities with slack variables.
+That is, we have a number of forms that we can choose to formulation
+the notion of LPs.
+
+In general an LP can fall into one of three types:
+\begin{enumerate}
+\item
+infeasible (when the feasible region is empty)
+
+\item
+feasible (bounded)---the function is bounded
+
+\item
+feasible (unbounded). COnsider, e.g. $\max x_1$ s.t. $x_1 \geq 0$.
+
+\end{enumerate}
+
+
+
+Note the \textbf{dual} LP problem is as follows.
+Suppose the primal is $\max c^Tx$ s.t. $Ax \leq b, x\geq b$.
+Then our primal has $n$ constraints.
+
+The dual is $\min y^T b$ s.t. $A^Ty \geq c, y \geq 0$.
+It's easy to show that the dual of the dual is the primal.
+
+We have the a result called \textbf{Weak Duality}:
+Suppose $x$ is feasible for the primal and $y$ is feasible for the dual.
+Then
+$$
+c^Tx \leq y^T b.
+$$
+The proof of this as follows.
+Since we have, from a dual constraint, that $A^Ty \geq c$, then
+we also have $y^TA \geq c^T$.
+Thus, from the primal, we have 
+\begin{align}
+c^Tx &\geq (Y^TA)x \\
+&= y^T(AX) \\
+&\leq y^Tb.
+\end{align}
+
+We point out two intresting things weak primality entails.
+This implies, first, that if the primal is unbounded, then the dual is 
+infeasible.
+Second, we have that if $x$ is feasible for the primal, $y$ is feasible
+for the dual, and $c^Tx = y^Tb$, then we have that $x$ is optimal
+for the primal and $y$ is primal for the dual.
+
+\subsection{Example}
+We continue the initial example given in the previous subsection.
+
+The dual formluation for the primal LP given in the previous section is:
+$$
+\min 10 y_1 + 8y_2 + 5y_3
+$$
+s.t.
+\begin{align}
+\begin{pmatrix}
+1 & 1 & 0 \\
+1 & 0 & 1
+\end{pmatrix}
+\begin{pmatrix}
+y_1 \\ y_2 \\ y_3
+\end{pmatrix}
+\geq
+\begin{pmatrix}
+3 \\ 2
+\end{pmatrix}
+\\
+y_1 \geq 0, y_2 \geq 0
+\end{align}
+We view the matrix above as two constraints ($y_1 + y_2 \geq 3$, etc).
+In an optimal solution, we'll have the two inequality constraints being
+tight.
+That is, we'll have 
+\begin{align*}
+y_1 + y_2 = 3 \\
+y_1 + y_3 = 2
+\end{align*}
+From these, we deduce
+$$
+y_2 = y_3 + 1
+$$
+
+So what we have (why?) is
+$$
+\min 10 y_1 + 13 y_3 + 8
+$$
+s.t. $y_1 + y_3 = 2$ and $y_1 , y_3 \geq 0$.
+We'll have $(y_1, y_2) = (2,0)$, and our objective
+function is $20 + 0 + 8 = 28$.
+
+Note that we got the same answer for the dual as we got for the primal.
+This is an instance of strong duality.
+
+\subsection{Strong Duality}
+
+We have the following result, called \textbf{strong duality}.
+If an LP is feasible and bounded, it has the same optimal objective
+function as its dual (which is also feasible and bounded).
+
+\subsection{Max-flow as LP}
+
+We'll end up with the fun result that the max-flow min-cut theorem may
+be viewed as a special case of strong duality: the dual of a max-flow
+problem will end up being equivalent to solving min-cut.
+
+Our variables are as follows.
+For every edge $e\in E$, we have a variable $x_e$ (so $x\in\mathbb R^{|E|}$),
+and $x_e$ is the amount of flow on edge $e$.
+We have $\forall e x_e \geq 0$, by the definition of flow.
+Further, we have the constraint
+$\forall e$, $x_e \leq$ the capacity of edge $e$.
+We also have $|V| - 2$ constraints telling us that 
+\begin{equation}
+\forall u \in V \setminus \{s,t\}. \sum_v x(u,v) = \sum_v x(v,u).
+\label{eq:constr2}
+\end{equation}
+We can write the above equality as two inequalities (further, we can
+get a constant on the RHS of the equation, as needed for our definition of
+LP, with simple algebra).
+The objective function is
+$$
+\max \sum_v x(s,v) - x(v,s)
+$$
+that is, we maximize the sum of the net flow out of the source.
+
+The dual formulation is as follows. 
+We have variables $\alpha_e$ for each capacity constraint.
+We have variables $\beta_u, \gamma_u$ for each of our constraints of
+type \eqref{eq:constr2} (we need two variables because we're giving our
+equality cosntraints as two inequalities).
+
+We then have the following dual objective
+$$
+\min \sum_e \alpha_e
+$$
+that is, we minimize the capacity of each edge $e$.
+The dual constraints are
+\begin{align}
+\forall u,v\in V\setminus\{s,t\}.
+\alpha(u,v) + (\beta_u - \gamma_u) + (\beta_v - \gamma_v) \geq 0 \\
+\alpha(s,t) \geq 1 \\
+\alpha(t,s) \geq -1 \\
+\forall e. \alpha_e \geq 0 \\
+\forall v \in V\setminus\{t\}
+\alpha(u,v) - (\beta_v - \gamma_v) \geq 1 \label{eq:maxconstr}
+\end{align}
+We also have a bunch more constraints that look like \eqref{eq:maxconstr}
+with $t$ replaced with $s$, and whatnot.
+
+It could be clearer to write $\beta_u - \gamma_u$ as $\delta_u$ (since that's
+how they always appear).
+Intuitively, since we're modeling equalities, we have the unrestricted
+variable $\delta_u$, which isn't required to be nonnegative.
+This is what the more general dual formulation looks like anyways when
+we have equality constraints in the primal: we'll end up with an unrestricted
+variable $\delta_u$ anyways.
+
+Note we could also model all the ugly special inequalities \eqref{eq:maxconstr}
+by unifying the dual constraints as
+$$
+\forall u,v. \alpha(u,v) + \delta_v - \delta_u \geq 0
+$$
+s.t. $\delta_s = 1, \delta_t = 0$.
+
+We'd like to claim that this is the min capacity cut problem. Our problem
+looks like that---we're summing over capacities $\alpha_e$.
+We can reason that in an optimal solution,
+$$
+\forall e \alpha_e = \max(0, \delta_u - \delta_v)
+$$
+We can thus substitute in for the $\alpha_e$'s in the problem formulation,
+and we just have a problem with variable $\delta_u$, $\delta_v$.
+
+WE'll be able to make the following claim: there is an optimal solution
+where all the $\delta_u$'s are $\leq 1$.
+Further, there's an optimal solution where all the $\delta_u$'s are $\geq 0$.
+Finally, we'll be able to claim that there's an optimal solution where
+all the $\delta_u$'s are either $0$ or $1$.
+
+Once we've done that, we'll be able to interpret this as the min-capacity
+cut problem. THis is so because choosing $\delta_u$ to be $0$
+or $1$ means choosing $u$ to be on the source side of the cut or the sink
+side of the cut.
+
+
+\section{NP-completeness}
+
+\subsection{Integer Linear Programming}
+
+ILP is just liek LP, but the variables are required to take on integer values.
+It may seem that, since there are ``fewer choices'' for the variables,
+this would be easier; however, it ends up the case that no poly-time
+algorithm is known (the Decision Procedure version of the problem is NP-
+complete, actually).
+
+So for LP, a local optimum was also a global optimum. However, this isn't
+necessarily the case in ILP.
+
+We may think that we can just ignore the integrality constraints---solve the
+general linear program, and round. In a few restricted settings, this actually
+almost works sometimes. In general, though, this can yield a solution
+that is either infeasible, or feasible but not optimal.
+
+In fact, even 0-1 ILP is hard (that is, ILP but where we're restricted to
+the numbers 0 and 1). Intuitively, we wouldn't expect rounding to work at
+all here. Further, it's actually somewhat easy to write a knapsack instance
+as a 0-1 ILP.
+
+The knapsack problem, recall is as follows. Item $i$ has value $v_i$ and
+weight $w_i$. The Knapsack has a capacity $W$.
+To formulate this as a 0-1 ILP, we define variables $x_i$, which takes
+value $1$ if we take item $i$, and $0$ otherwise.
+We solve
+\begin{align}
+& \max \sum_i x_i v_i \\
+s.t. & \sum_i x_i w_i \leq W \\
+& x_i \in \{0,1\}.
+\end{align}
+
+So we have a nice problem that, if we slightly tweak it, we get something
+that's not solvable in polynomial time.
+
+
+\subsection{NP}
+
+If we can give a polytime algorithm for any NP-complete algorithm, we get
+a polytime algorithm for any of the other ones (so if we solve knapsack,
+for example, we've solved ILP, as we'll show).
+
+As usual we restrict our attention to Decision Problems (DPs)---it's easier
+to restrict ourselves to questions that all have the same output
+format (that is, they all simply answer ``yes'' or ``no'').
+
+This might feel weaker---suppose we have knapsack, and what we really want
+is an encoding of an optimal set of items to take. We might think that
+the decision version of this problem is easier (which, in this case, is
+supposing we have a knapsack instance plus a bound $B$, is there a set of
+items that fits in the backpack and has value at least $B$). It's not
+tough to see this isn't the case---if we could solve the DP version in 
+polytime, then we could solve the original version in polytime---do bsearch
+to figure out the exact optimal value that can fit in the knapsack; to figure
+out exactly which items fit in the knapsack, delete an item, and see if the
+optimum goes down---if it does, then we know an item must be in the optimal
+solution.
+Thus, by a polynomial number of calls to the decision version, we can solve
+the optimization version, so the latter is no harder than the former.
+
+We may think of DPs as a binary language over $\{0,1\}^*$. For example, 
+consider the DP version of knapsack described above---can a set of items with
+value $\geq B$ fit into the knapsack of capacity $W$?
+It's somewhat easy to see how we could encode an instance of knapsack into
+a binary string---as long as we choose some reasonable encoding, the complexity
+will be the same, and we can view the problem as taking bitstrings as input.
+
+So we talk below about the class $P$, which are \emph{decision problems} that 
+are solvable in polynomial time.
+In other words, there should be a polynomial time algorithm which,
+polynomial in the length of the input, terminates with yes or no.
+
+The class $NP$ is as follows. A language $L$ is in $NP$ iff it is
+polynomial-time verifiable. There is an asymmetry baked in here: ``yes''
+instances of the problem have a short proof allowing us to verify that they
+in fact work; there isn't necessarily such a proof for ``no'' instances.
+
+More formally, $L\in NP$ iff there is a two-input polynomial-time verifier
+$A(x,y)$\footnote{$x$ is the string we want to determine if it's in the 
+language; $y$ is the purported proof that $x\in L$. The job of the verifier 
+is to check whether $y$ is a valid proof that $x\in L$.} 
+such that the following two things hold:
+\begin{itemize}
+\item
+$\forall x\in L.\,\, \exists y.\,\, |y| = O(|x|^c)$ for some constant $c> 0$
+and $A(x,y) = 1$; and
+
+\item
+$\forall x\not\in L.\,\, \forall y.\,\, A(x,y) = 0$ (that is, there is no
+proof that can fool us into thinking $x\in L$).
+\end{itemize}
+
+Note that if $L\in P$ then $\overline L\in P$.
+However, because of the asymmetry in the two bullet points above, it isn't
+necessarily the case that the above holds for $NP$.
+That is,
+$$
+L\in NP \Leftrightarrow \overline L \in coNP
+$$
+and certainly we don't know if $coNP = NP$.
+
+\subsubsection{Example: SAT}
+
+As an example, we have that $SAT \in NP$.
+Supposing we have a boolean formula $x$ using the connectives 
+$\wedge, \vee, \not$.
+We have that $SAT\in NP$, pretty easily: all we need to do is exhibit
+a poly-time verifier algorithm $A$ that satisfies the definition given in the 
+previous section.
+How does this work? It takes as two strings, $x$ (the SAT instance), and
+$y$ (the truth assignment---let $|y|$ be the number of variables in $x$;
+we interpret $y$ as a truth assignment).
+The algorithm $A$ need only evaluate the formula with the truth assignment
+given in $y$, which can be done in polynomial time.
+
+Note the verifier need not come up with a truth-assignment $y$; it need
+only check whether a given assignment is true. That's enough to satisfy
+the definition to show SAT $\in NP$.
+
+\subsubsection{Example, 0-1 ILP, DP version}
+
+Let's think now about the decision version of 0-1 integer linear programming.
+The input is $A,b,c$, with $A$ an $m\times n$ matrix; 
+$b$ and $c$ $m\times 1$ vectors.
+To make it a yes-no question, we give ourselves a bound $B\in\mathbb Z$ and
+ask: is there an $x\in \{0,1\}^n$ s.t.
+$Ax\leq b$ and $c^Tx \geq B$ (that is, is there a feasible solution with
+objective at least $B$?).
+
+To show 0-1 ILP is in $NP$, we'll treat $y$ as a 0-1 assignment to the $n$
+variables $x_i$.
+We then check if the given $y$ is feasible, and then check to see if the 
+objective is $\geq B$ (both of which can be done in polynomial time
+pretty straightforwardly).
+
+\subsubsection{Example, UNSAT}
+
+We may think that any problem that isn't polynomial-time solvable is in
+$NP$. Of course this isn't true.
+Consider the problem UNSAT, which is in some sense the dual of SAT---
+answer ''yes'' iff a problem is unsatisfiable.
+How could we give a short proof that a formula is not satisfiable?
+We don't show anything here, but it's certainly not clear that UNSAT is in
+$NP$ (and, in fact, almost certainly isn't).
+
+
+
+
+\subsection{Polynomial-time transformations}
+
+Consider a problem $X$ (for example, SAT).
+There are many possible instances of $X$, some of which have answer ``yes''
+and some of which have answer ``no'' (and similarlty with another problem $Y$).
+To give a polynomial-time transformation from $X$ to $Y$, we must give a
+mapping from every $x\in X$ to some $y\in Y$ such that, for every ``yes''
+instance $x$, we map to a ``yes'' instance in $Y$ (and ditto with the ``no''
+instances).
+Note that this transformation need not be either injective or surjective:
+the image of the transformation may be a proper subset of $Y$.
+
+That is, we require, $\forall x\in \{0,1\}^*$, $x\in X$ iff $f(x) \in Y$.
+
+If we have such an $f$ that is poly-time computable, we wrote
+$$
+X \leq_P Y.
+$$
+If $Y$ can be solved, for example, in polyonimal time, then we can also
+solve $X$ in polynomial time: take an instance of $X$, send it to $Y$, and
+solve it. So the above is $\leq_P$, rather than $\geq_P$, because a
+polynomial-time transformation means that $X$ is at least as easy as $Y$,
+in the obvious coarse sense.
+
+For example, if we show that $X\leq_P Y$ and $Y\in P$, then we can conclude
+that $X\in P$.
+That is, we solve problem $X$ by reducing it to a problem $Y$ we already know
+how to solve.
+
+We also have the following related property, which is basically the
+contraposed version of the above.
+If $X\leq_P Y$ and
+$X\not\in P$, then $Y\not\in P$ (these results are typically more difficult
+to find).
+For example, we showed KNAPSACK $\leq_P$ 0-1 ILP. If we were to show that
+KNAPSACK is not solvable in polynomial time, then we'd also have that 0-1 ILP
+is non-polytime solvable.
+
+
+\subsection{NP-Completeness}
+
+Now, we have that $L\in NPC$ iff $L\in NP$ and 
+$\forall L'\in NP.\,\,L' \leq_P L$.
+
+This seems hard because of the $\forall$ on the RHS of the biconditional.
+We get around this with the Cook-Levin theorem, which tells us SAT $\in NP$.
+
+Once we have a particular NP-complete problem, we can reformulate the
+above statement to
+$$
+L\in NPC \Leftrightarrow
+L\in NP \wedge
+\exists L'\in NPC.\,\, L' \leq_P L.
+$$
 
 
 
