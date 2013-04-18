@@ -32,6 +32,8 @@ They're taken primarily in-class, and probably only useful for my own
  personal reference.
 \end{abstract}
 
+\tableofcontents
+
 \section{Preamble: Useful identities}
 
 
@@ -4441,18 +4443,18 @@ side of the cut.
 
 \subsection{Integer Linear Programming}
 
-ILP is just liek LP, but the variables are required to take on integer values.
+ILP is just like LP, but the variables are required to take on integer values.
 It may seem that, since there are ``fewer choices'' for the variables,
 this would be easier; however, it ends up the case that no poly-time
-algorithm is known (the Decision Procedure version of the problem is NP-
-complete, actually).
+algorithm is known (the Decision Procedure version of the problem is 
+NP-complete, actually).
 
 So for LP, a local optimum was also a global optimum. However, this isn't
 necessarily the case in ILP.
 
 We may think that we can just ignore the integrality constraints---solve the
 general linear program, and round. In a few restricted settings, this actually
-almost works sometimes. In general, though, this can yield a solution
+comes close sometimes. In general, though, this can yield a solution
 that is either infeasible, or feasible but not optimal.
 
 In fact, even 0-1 ILP is hard (that is, ILP but where we're restricted to
@@ -4578,11 +4580,11 @@ pretty straightforwardly).
 
 We may think that any problem that isn't polynomial-time solvable is in
 $NP$. Of course this isn't true.
-Consider the problem UNSAT, which is in some sense the dual of SAT---
+Consider the problem UNSAT, which is the complement of SAT---
 answer ''yes'' iff a problem is unsatisfiable.
 How could we give a short proof that a formula is not satisfiable?
 We don't show anything here, but it's certainly not clear that UNSAT is in
-$NP$ (and, in fact, almost certainly isn't).
+$NP$ (and, in fact, isn't assuming NP $\neq$ co-NP, though we don't know that).
 
 
 
@@ -4601,7 +4603,7 @@ the image of the transformation may be a proper subset of $Y$.
 
 That is, we require, $\forall x\in \{0,1\}^*$, $x\in X$ iff $f(x) \in Y$.
 
-If we have such an $f$ that is poly-time computable, we wrote
+If we have such an $f$ that is poly-time computable, we write
 $$
 X \leq_P Y.
 $$
@@ -4642,10 +4644,261 @@ L\in NP \wedge
 \exists L'\in NPC.\,\, L' \leq_P L.
 $$
 
+So that is, when we have a new problem, we don't go through, for every language
+$L'\in NP$, and prove that $L' \leq_P L$; instead, we have a single language
+that we go through.
+That is, to show $L$ is NP-complete, we use
+$$
+L\in NP \wedge L' \leq_P L \wedge L' \in NPC \Rightarrow L \in NPC.
+$$
+\textbf{Be sure to get the order right}.
+Reduce \textbf{from} SAT, not to it.
+If we were to show $L$'s complexity is less than some NP-complete problem,
+that doesn't imply that it's a hard problem, but merely easier than some
+hard problem.
+
+
+\subsubsection{CIRCUIT-SAT, showing SAT NP-complete}
+
+CLRS proves that, for any $L\in NP$, $L$ is polynomial-time reducible to 
+circuit-SAT.
+The circuit-SAT problem is as fast: suppose we're given some boolean circuit,
+with no feedback/cycles. It has $\wedge,\vee,\not$ gates, for example, and
+has a single output wire.
+The problem is as follows: given a circuit, is there some input to the
+input wires that makes the output wire true.
+
+We'll show that CIRCUIT-SAT $\leq_P$ SAT; in the latter, the input is a 
+boolean formula, not a circuit, so we have to convert from circuits
+to formulas.
+
+It's easy to show that SAT $\in$ NP: given a truth assignment to the variables,
+check in polynomial time whether the formula evaluates to true or false
+in the assignment.
+
+We now show CIRCUIT-SAT $\leq_P$ SAT. We need a polytime computable $f$
+mapping $x$ to a formulat $f(x)$ such that
+$$
+x\in \textrm{CIRCUIT-SAT} \Leftrightarrow
+f(x) \in \textrm{SAT}.
+$$
+To convert from $x$ to a corresponding boolean formula $f(x)$, there's a 
+pretty obvious thing to do: topologically order the gates in the input
+circuit, and, at each gate, write an expression for the value of the output
+wire, in terms of its inputs.
+Defining $f(x)$ in this way does satisfy the condition above: it's
+a sound transformation or whatever.
+However, it doesn't yield a polynomial-time computation: we can come up with
+fairly simple examples whose output length is exponential in the input length:
+input $x_1, x_2$ to an and gate, split the output of that into another
+and gate (doubling the output size), and repeat this: at each AND gate, you
+double the size of the formula.
+
+WE get around the above by introducing a variable for each gate: define
+a new variable for the output wire for each gate. Even if there's a huge
+circuit underneath a gate, the formula at the gate will have a constant-length
+formula (rather than before, where the subformula at each gate was potentially
+explosive).
+To combine them, we simply take the conjunction of all the fragments (so
+an AND gate taking $x_1$ and $x_2$ will ahve the formula $y_1 \leftrightarrow
+x_1 \wedge x_2$, for example), and conjoin the fact that the output wire
+(which has a variable, $y_k$, say).
+That is, if gate $i$ has local formula $\phi_i$, then our output formula is
+$$
+y_k \wedge \bigwedge_i \phi_i.
+$$
+
+This formula is satisfiable iff the original circuit had a satisfying input.
+
+In one direction, assume the circuit is satisfiable. Then there is an 
+assignment making the boolean formula above true. To see this, look at
+what each of the output wires of the gates carry: set the $x_i$'s (the
+original input variables) equal to the satisfying interpretation we're given;
+set the $y_i$'s equal to what they are in the original circuit. All of the
+little fragments (referred to as $\phi_i$ above) will evaluate to true---they
+basically just encode the meanings of the gates. Further, the $y_k$ at the
+top of the formula (the output wire) will be true, since we assume we
+have a satisfying assignment.
+
+On the other hand, suppose there is a satisfying assignment to the
+$
+y_k \wedge \bigwedge_i \phi_i
+$
+formula. Then it is pretty easy to see that the $x_i$ portion of that
+is a satisfying interpretation of the circuit: the $y_j$'s represent exactly
+the outputs of the individual gates.
+
+So we have given a polytime computable $f$ that has the properties we want,
+and have shown SAT to be an NP-complete problem (assuming that CIRCUIT-SAT
+is NP-complete, which is shown in the text).
+
+
+\subsubsection{3-SAT is NP-Complete}
+
+3-SAT is SAT, but we require the formulas to be in 3-CNF.
+A 3-CNF formula is of the form
+$$
+\bigwedge_i C_i
+$$
+where each $C_i = (\ell_{i1} \vee \ell_{i2} \vee \ell_{i3})$, with
+$\ell_i$ giving a literal (a variable or the negation of a variable), and
+each of the literals in a clause involve distinct variables.
+
+Frequently, a problem is shown to be NP-complete via a reduction from 3-SAT,
+so it's pretty important to see 3-SAT is NP-complete; that is, 3-SAT $\leq_P$
+$X$ is often used to show show $X$ is NPC.
+Why don't we just reduce from SAT instead of 3-SAT?
+Well, a reduction from 3-SAT is basically always easier than a reduction
+from SAT: reducing from SAT requires that we handle all possible formulae;
+reducing from 3-SAT requires considering only a very restricted subset
+of the formulas.
+That is, a reduction from 3-SAT won't possibly make the proof any more 
+difficult.
+
+To show 3-SAT NP-complete, we must first show it's in NP: since it's a 
+restricted version of SAT, of course it is in NP.
+
+Now, to show SAT $\leq_P$ 3-SAT, we nee da polynomial-time computable
+$f$ with the desired problem.
+Let $x$ be a given SAT instance (assume it uses $\wedge,\vee,\neg$).
+Construct the parse tree for $x$ (built as you think it is).
+Use the same trick as we used for CIRCUIT-SAT: for each node in the parse
+tree, introduce a new variable $y_i$, and introduce conditions for its
+verification: if we have a node for $x_1\vee x_2$, for example, we'll have
+$y_1\leftrightarrow x_1\vee x_2$, for exampls.
+We then set $f(x)$ equal to the conjunction of the output variable ($y_k$, say)
+and the various clauses.
+Again, calling the clause introduced at node $i$ $\phi_i$, we have
+$$
+f(x) \equiv y_k \wedge
+\bigwedge_i \phi_i.
+$$
+For a similar reason to that given in the last construction, $f(x)$ is
+poly-sized.
+
+Now, $f(x)$ isn't quite a 3-CNF formula yet, but we do have the conjunction of
+a number of clauses, where each of the clauses involves 3 variables or
+fewer. We can fairly straightforwardly convert it to 3-CNF: we only have
+a few types of formulas (one form from $\vee$, one from $\wedge$, one
+for $\neg$).
+$\vee$ and $\wedge$ are somewhat simple; the ones introduced by $\neg$,
+of the form $y_i \leftrightarrow \neg x_j$, are converted to 3-CNF clauses
+by introducing dummy-variables.
+To get the idea, consider the root variable $y_k$; to rewrite that as the
+conjunction of 3-CNF clauses, write it as
+$$
+(y_k \vee a \vee b) \wedge 
+(y_k \vee a \vee \neg b) \wedge
+(y_k \vee \neg a \vee b) \wedge 
+(y_k \vee \neg a \vee \neg b)
+$$
+which, it is easy to see, is logically-equivalent to $y_k$.
+The negations with only 3 variables use a single dummy similarly.
+
+
+
+\subsubsection{The Maximum Independent Set Problem (MIS) is NP-Complete}
+
+Given an undirected graph $G$, and an integer $k$, we ask: does $G$ have
+an independent set of size $\geq k$.
+An Independent set is a set of vertices such that no two are adjacent to
+each other.
+(This is obviously the decision-problem version of the typical MIS 
+formulation).
+
+It's pretty easy to see that MIS $\in$ NP. Suppose we ahve a positive instance:
+we have a graph $G$ that does have an independent set of 1000. A short proof
+of that is basically just an encoding of the independent set: a bit-vector
+of cardinality $|V|$, for example.
+
+How, we show 3-SAT $\leq_P$ MIS; that is, if MIS were polynomial-time solvable,
+then we'd have a poly-time solver for 3-SAT.
+Suppose we have a 3-SAT instance $x$.
+We need to map it in polynomial time to an MIS instance $f(x)$ such that
+$x\in $ SAT iff $f(x)\in$ MIS.
+
+The input is a 3-CNF formula; we must transform that into a graph $G$ and
+integer $k$.
+Set $k$ to the number of clauses in $x$; to build the graph $G$, we start
+with a triangle for each clause: each clause $C_i$ has a triangle,
+and each literal in the 3-clause has a vertex.
+We must add some additional edges: we put edges between any nodes $u,v$ where
+the label of $u$ is the negation of $v$.
+It's pretty easy to see that, given an arbitrary 3-CNF formula, this 
+construction
+takes polynomial time.
+
+We must show both directions.
+First, suppose $x\in $ 3-SAT; that is, we can come up with a truth assignment
+to the variables such that at least one of the literals in every vertex
+is satisfied. Pick one satisfied literal  arbitrarily out of each of the
+clause-triangles. The circled vertices must form an independent set of size
+at least $k$. It's clearly at least of size $k$. They're also independent; if
+there were an edge from two vertices not in the same triangle, then one
+is the negation of the other, and it wouldn't be a satisfing assignment.
+
+On the other hand, suppose $f(x)\in$ MIS. Then we have an independent set
+whose size is at least the number of clauses. Then we choose at least one
+vertex out of each triangle. We have $k$ triangles, and we can't take
+two or more vertices from each vertex (it's an independent set).
+From that, we can read off a satisfying assignment to $x$: for each node in
+the independent set, look at its label: if a node is labeled $x_i$, then 
+set $x_i$ to true; if it's labeled $\neg x_i$, set $x_i$ to false. By
+doing so, we have that each clause is satisfied. It can never be the
+case that we encounter both $x_i$ and $\neg x_i$; they have an edge between
+then, and can never occur in an independent set.
+
+It is worth noting that this proof would have been much uglier if we had
+to consider SAT in general.
+
+
+
+\subsubsection{Vertex-Cover (VC) is NP-Complete}
+
+This is almost exactly the MIS problem. A vertex cover for a graph $G=(V,E)$
+is a subset $U\subseteq V$ such that
+$$
+\forall(u,v)\in E.\,\,
+\{u,v\} \cap U \neq \emptyset.
+$$
+That is, each edge in the graph has at least one of its endpoints in the set
+$U$.
+Clearly, $V$ is a vertex cover, but we can often get smaller vertex covers.
+
+There's a close relationship between VC and MIS: $U$ is an independent set
+of $G=(V,E)$ iff $V\setminus U$ is a vertex cover of $G$.
+That is to say, finding a maximum independent set is the same as finding
+a minimal vertex cover.
+
+So this is pretty cool: generally, when we give transformations, the 
+transformations are one-way: we typically map all instances of $x$ to a smaller
+set of instances of the domain problem (in other terms, $f$ is not surjective).
+However, because of the close correspondence of MIS and VC, we can show that
+they're equivalent in difficulty; that is, VC is NP-complete because it's the
+same problem as MIS (we're not quite done, but it's pretty easy).
 
 
 
 
+\subsubsection{Hamiltonian Circuit (HC) is NP-Complete}
+
+Given an undirected graph, is there a simple cycle that visits all of the
+vertices of the graph?
+It's easy to show HC is in NP: guess a permutation, and verify that it 
+corresponds to a cycle.
+
+To show hardness, we'll use $VC \leq_P HC$. Following CLRS, we'll
+use the ``exact'' version of VC: instead of asking if a graph has a vertex
+cover of at most $k$, we'll instead use the DP ``does $G$ have a VC
+of size equal to $k$?''. It's somewhat easy to see that if one is solvable
+in polynomial time, then so is the other.
+
+So we'll want to transform a VC instance $x = (G,k)$ to a graph $G'$
+such that $G$ has a VC of size $k$ iff $G'$ has a Hamiltonian Circuit.
+We'll build a $G'$ that looks basically nothing like $G$; $G'$ will be built
+up of little chunks.
+We'll have a strange little ``chunk'' for each $(u,v)\in E$ (of the
+input graph); each chunk has 12 vertices.
 
 
 
