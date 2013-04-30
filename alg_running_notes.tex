@@ -4808,7 +4808,7 @@ The negations with only 3 variables use a single dummy similarly.
 
 
 
-\subsubsection{The Maximum Independent Set Problem (MIS) is NP-Complete}
+\subsubsection{Maximum Independent Set (MIS) is NP-Complete}
 
 Given an undirected graph $G$, and an integer $k$, we ask: does $G$ have
 an independent set of size $\geq k$.
@@ -4990,7 +4990,7 @@ For $s_1$, for example, we'll follow it to $u_1$'s superterminal.
 We'll proceed by following all the gadgets for edges incident on
 $u_1$---we can do so, because in our construction we connected all of
 $u_1$'s terminals to each other.
-For a $v_1$ that's a neighbor to $u_1$, if it's in the vertex
+For a $v_1$ that's a neighbor to $u_1$, if it's not in the vertex
 cover, then we'll cover all 12 of the gadget's vertices; otherwise,
 we'll just pass through the LHS 6 of them.
 Finally, after traversing all of $u_1$'s neighbors, continue back up
@@ -5057,29 +5057,29 @@ $$
 $$
 For the LP given above, we can throw away the upper-bound constraint, and
 simply require $x_u \geq 0$.
-Once $x_u$ is equal to 1, it makes all the constraints that it's oinvolved
-with satisfied; since we have a minimization problem, we certainly won't
-increase hte value any more than that.
-Thus, simply the nonnegativity constraints suffice.
+Once $x_u$ is equal to 1, it satisfies all the constraints that it's involved
+with; since we have a minimization problem, we certainly won't
+increase the value any more than that.
+Thus,  the nonnegativity constraints suffice.
 
 We may thus solve this LP to get the optimal fractional solution, and
 round to get the nearest integral solution (this general technique sometimes 
 works, and sometimes doesn't).
 When we round, we send anything $\geq 0.5$ to 1, and things $< 0.5$ to 0.
 
-After we ask ourselves, we must ask ourselves two things. First, is the
+We must ask two things. First, is the
 rounded solution feasible---it's conceivable that in rounding we could violate
 one of the constraints.
 Note that before the rounding, the edge constraints were satisfied; at least
 one of the vertices must have had $x_u \geq 0.5$; if not, then the sum
 would be $< 1$. Thus, yes, rounding still puts us into the feasible region.
 
-Second, we must ask ourselves how close to the optimal solution we will end up?
+Second, we must ask ourselves how close to the optimal solution we will end up.
 The answer here is that rounding at most doubles the value of the objective
 function.
 The objective function is, recall, 
-$sum_u w_u x_u$.
-Suppose $x_u = 0.5$, then we at double that term's contribution; if $x_u$
+$\sum_u w_u x_u$.
+Suppose $x_u = 0.5$, then we at most double that term's contribution; if $x_u$
 is greater, then we less-than-double the objective function.
 
 Since we solved the LP exactly, the value before rounding is the optimal
@@ -5088,7 +5088,7 @@ integral value. So we must therefore also have that the solution is
 at most a factor of 2 from the optimal integral solution (by an argument
 I didn't quite follow).
 
-\subsection{A Primal-Dual approach to solved weighted vertex cover}
+\subsection{A Primal-Dual 2-approximation algorithm for weighted vertex cover}
 
 We'll use the same LP relaxation we did in the last section, but we'll also
 form its dual, and consider an algorithm that not only updates the
@@ -5096,11 +5096,11 @@ primal variables, but also alternately updates the dual variables; we'll
 work on both sets of variables together. We'll develop a method that doesn't
 require a general LP solver.
 
-The primal is, recall,
+The primal LP-relaxed problem is, recall,
 \begin{align}
 & \min \sum_u w_u x_u \\
 s.t.\quad & \forall (u,v)\in E.\,\, x_u + x_v \geq 1 \\
-& \forall u.\,\, x_u \in \{0,1\}
+& \forall u.\,\, x_u \geq 0
 \end{align}
 Then the dual is
 \begin{align}
@@ -5109,14 +5109,249 @@ s.t.\quad & \forall u.\,\, \sum_{\{v : (u,v)\in E\}} y_{(u,v)} \leq w_u \\
 & \forall e.\,\, y_e \geq 0.
 \end{align}
 
-We will start with $x=0, y=0$, and we will maintain $x_u'\in\{0,1\}$;
-on termination we will have that $x$ is feasible (note that initially
-we do not have a feasible solution).
-On the other hand $y$ will be fractional; we'll maintain a complementary
-slackness condition: we'll maintain that if $x_u > 0$, then the dual
-constraint for $u$ is tight (that is, is an equality).
-(The dual complementary slackness condition has that $y_e > 0$ if the
-primal constraint is tight, but we won't enforce that).
+Now, the complementary slackness conditions say the following: Suppose you
+have a feasible solution to the primal and to the dual.
+Then, (1),
+$$
+\forall u. x_u > 0 
+\Longrightarrow
+\sum_{\{v : (u,v) \in E\}}
+y_{(u,v)} = w_u
+$$
+and, (2):
+$$
+\forall e = (u,v)\in E.\,\,
+y_e > 0 \Longrightarrow
+x_u + x_v = 1.
+$$
+In other words, they give conditions for tightness of bounds.
+
+Now, we'll initially set $x=0, y=0$. If we keep $x$ integral, we'll not
+be able to maintain optimality, because by complementary slackness (somehow,
+I got distracted), this will mean we've solved the ILP rpoblem exactly,
+and that's NP-complete.
+
+So we'll iteratively update $x$ and $y$, while maintaining
+\begin{itemize}
+\item
+$\forall u. x_u \in \{0,1\}$
+
+\item
+$\forall u. x_u = 1$ iff $\sum_{\{v : (u,v)\in E\}} y_{(u,v)} = w_u$.
+Note that, since we recall $x_u \in \{0,1\}$, this is exactly 
+equivalent to the first complementary slackness condition.
+
+\item
+$y$ is a feasible solution to the dual.
+\end{itemize}
+Note that, initially, $x$ is infeasible (assuming $E\neq \emptyset$).
+Also, note that the first two conditions are such that the dual
+variables $y$ totally determine the $x$ variables; it may thus be viewed
+as a program on dual variables (eh?).
+
+So what we do is the following:
+\begin{itemize}
+	\item While $x$ is not feasible:
+	\begin{itemize}
+		\item increase some $y_e$, maintaining the feasibility of $y$;
+		\item Update $x$ accordingly.
+	\end{itemize}
+\end{itemize}
+How do we pick the $y_e$ we want to increase? Well, let $e = (u,v)$ be
+an arbitrary edge in $E$ such that both dual constraints (for $u$ and
+for $v$) are not tight (thus, $x_u = x_v = 0$). We're guaranteed to have
+such an edge by an argument I was too busy typing to get.
+We then increase that $e$'s $y_e$ until at least one of the constraints
+(in the dual---either $u$'s constraint or $v$'s constraint) is tight.
+
+Note that we didn't solve a linear program here.
+
+Consider the value of the objective function upon termination. We argue that
+it's no more than twice the weight of an optimal min-weight vertex cover.
+Now,
+\begin{align}
+\sum_u w_u x_u
+&=
+\sum_{\{u : x_u = 1\}}
+w_u \\
+&=
+\sum_{u : \mathrm{dual constr. is tight}}
+w_u
+\\
+&=
+\sum_{u : \mathrm{dual constr. is tight}}
+\sum_{\{v : (u,v) \in E\}} y_{(u,v)}
+\\
+&\leq
+\sum_u
+\sum_{\{v : (u,v) \in E\}} y_{(u,v)}
+\\
+&=
+2\sum_{e} y_e
+\\
+& \leq 2 \times \mathrm{opt-value-for-dual}
+\end{align}
+We have the last thing because $y$ is feasible for the dual.
+So if $y$ is a feasible solution for the dual, than its objective function
+$\sum_e y_e$ is $\leq$ the optimal-value-for-the-dual.
+
+By strong duality, we have that opt-value-for-dual is the same as
+the optimal-value-for-the-primal.
+That itself is less than the opt-value-for-integral-primal, that is, the
+primal problem with integrality constraints.
+So we have argued that the value of the primal objective is at most
+twice the optimum of the primal solution with integrality constraints.
+
+\subsection{Reductions are not Approximation-Preserving}
+
+So we've approximated, to within a constant factor of 2, the weighted
+vertex cover problem, and we've done so in polynomial time.
+Can we do better? 
+No.
+There is some $c > 1$ (1.36 or something) such that the problem cannot
+be approximated better than $c$ unless $P=NP$.
+So coming up with a problem that makes an error of at most 10\% on any input
+and runs in polytime is also NP-complete. Cool!
+
+Note that this is a problem-specific trait. You can write down many different
+optimization versions of NP-complete problems, and they can behave quite 
+differently with regard to approximability.
+
+Recall, for example, that MIS and VC are exactly the same problem in terms
+of finding an exact solution (take the complement of one to get the other).
+However, they behave quite differently with regard to approximability.
+We may get, for example, a VC that contains all the vertices in the graph,
+and is 2-approximate; however, the complement of that is the empty-set, which
+is infinitely bad as a maximal independent set.
+
+In other words, the standard polynomial-time reduction from one problem 
+to another is not ``approximation-preserving''.
+We'd like to be able to compose two approximation-preserving reductions
+and get an approximation-preserving reductions, but the standard 
+reduction just doesn't give us this (these complexity classes do exist, 
+however).
+
+MIS, in fact, cannot be approximated to within $n^{1/2 - \varepsilon}$
+unless P=NP (with $n$ the number of vertices). So if you were to come up
+with an approximation algorithm that got MIS to within $\sqrt n$, you'd
+be able to exactly solve all NP-complete problems in polynomial time.
+(Further, under a stronger assumption, you show that you can't come
+within a $n^{1-\varepsilon}$ factor.)
+
+\subsection{(Fully)-Poly-time Approximation Schemes}
+
+
+We also have some NP-hard optimization problems that do better than above.
+There are some NP-hard optimization problems that admit a polynomial-time
+approximation scheme (PTAS)---we pick some $\varepsilon$, and we get
+a $(1 + \varepsilon)$-approximation guarantee for all $\varepsilon > 0$.
+
+Further, there are problems that admit a FPTAS: a fully-poly-time approximation
+scheme.
+What's that mean? 
+Suppose we have a very small $\epsilon$,
+and that the runtime of the algorithm is, say,
+$$
+2^{1/\varepsilon} n^3.
+$$
+For any fixed-epsilon, this is polytime, so it's a PTAS. However, it performs
+very badly for very small $\varepsilon$ (we can construct much worse 
+examples than this too).
+A FPTAS, on the other hand, would have running time polynomial in
+the input size $n$ and in $1/\varepsilon$ (so
+$$
+n^{10} (1/\varepsilon)^6
+$$
+is an FPTAS.
+
+For example, consider the knapsack problem. The decision version is, recall,
+NP-complete. However, this problem behaves very nicely with regard to
+approximability.
+
+How? Assume, first, that we've thrown out all items that don't fit in the
+knapsack.
+Let $v^*$ denote the max item value (thus, the optimal value is
+$\geq v^*$, since we assume everything fits in the knapsack).
+Now, we ``round'' the values up to the nearest integral multiple of 
+$\Delta = v^* \varepsilon /n$. Intuitively, we're reducing the number of
+values we're considering. So $v_i$ gives us 
+$$
+\tilde v_i =
+\Delta 
+\lfloor
+v_i / \Delta
+\rfloor.
+$$
+So $v_i \leq \tilde v_i < v_i + \Delta$.
+
+How many values to we have to consider? Well, from $v^*$, we have
+$n/\varepsilon \cdot \Delta$ something, I have no idea what this expression
+means because fucking TeXShop decided to stop compiling and I've been trying
+to figure out why.
+
+So each $v_i$ is mapped to a $j\Delta$ for some $j\in \{0,\ldots, n/\varepsilon
+\}$.
+Any subset of items then have value $j\Delta$ for some $0\leq j \leq n^2 / 
+\varepsilon$.
+This thus gives us that knapsack is a FPTAS, somehow.
+
+What's the approximation guarantee? For each item, we can incur at most
+a $\Delta$ error; since there are $n$ items, our total error is at most
+$n\Delta = \varepsilon v^* \leq \varepsilon \cdot OPT$.
+
+So the optimal-rounded solution has its true value $\geq (1-\varepsilon)\cdot 
+OPT$.
+
+Now, the Traveling Salesman Problem (TSP) can be easily shown to be 
+NP-complete by a reduction from Hamiltonian cycle. The Decision problem is
+to ask if there's a tour with a cost of a certain bound.
+So HC $\leq_P$ TSP: Suppose we have something to solve TSP; we set up a 
+const matrix so that the cost of going from $u$ to $v$ is 0 if there's
+an edge from $u$ to $v$ in the graph, and 1 otherwise. We thus ask if there
+is a tour of cost 0, which is equivalent to finding a Hamiltonian Cycle.
+This problem has no PTAS.
+
+A famous restricted version of TSP is Euclidean TSP (or metric TSP): in two 
+dimensions,
+the points are points in the plane, and the costs are exactly equal to the
+Euclidean distance between the points. A PTAS has been given for the
+Euclidean version of TSP: for any constant-dimension and any constant 
+$\varepsilon$, we get a polytime algorithm.
+
+\subsection{Approximation to with a log-factor}
+
+Further, there are NP-hard problems approximable to within a logarithmic
+factor (and no better, unless P=NP).
+
+A canonical example of this is weighted set cover: this is a generalization of 
+vertex cover. Suppose we have a set $S$ of things we would like to cover (in
+VC, the set is the set of edges).
+We then have a set of sets $A_i \subseteq S$, and we want to find a 
+least-cardinality (least-weight) collection of $A_i$'s whose union
+is $S$ (in the VC problem, these sets will be the set of vertices on an edge, 
+I think).
+
+There is a simple $\ln |S|$ approximation algorithm for set cover (in
+fact, the approximation ratio is $\ln \max|A_i| \leq \ln |S|$).
+Further, there is a $c> 0$ such that an approximation algorithm for set cover
+ achieving ratio
+$< c\log n$ entails that P=NP.
+
+We'll give a pretty simple greedy algorithm for weighted set cover.
+We initialize our solution to the empty set.
+Then, we iteratively select a set $A_i$ to add to our set cover, selected
+as follows.
+For a set $A_i$, we look at the 
+$
+w_i / N
+$, with $N$ the number of newly covered elements (that is, the number of
+elements in $A_i$ that we didn't already have in our working set cover.
+Intuitively, this is the cost per item newly covered.
+We thus pick a set $A_i$ minimizing this ratio.
+
+It's pretty clear that this runs in polynomial time---the total number of
+iterations is at most the number of sets we have.
+
 
 
 
