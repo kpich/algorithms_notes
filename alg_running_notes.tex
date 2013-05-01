@@ -5318,7 +5318,7 @@ Euclidean distance between the points. A PTAS has been given for the
 Euclidean version of TSP: for any constant-dimension and any constant 
 $\varepsilon$, we get a polytime algorithm.
 
-\subsection{Approximation to with a log-factor}
+\subsection{Log-factor approximation: weighted set cover}
 
 Further, there are NP-hard problems approximable to within a logarithmic
 factor (and no better, unless P=NP).
@@ -5327,9 +5327,10 @@ A canonical example of this is weighted set cover: this is a generalization of
 vertex cover. Suppose we have a set $S$ of things we would like to cover (in
 VC, the set is the set of edges).
 We then have a set of sets $A_i \subseteq S$, and we want to find a 
-least-cardinality (least-weight) collection of $A_i$'s whose union
-is $S$ (in the VC problem, these sets will be the set of vertices on an edge, 
-I think).
+least-cardinality (least-weight) collection of $A_i$'s 
+such that $\cup_i A_i = S$.
+(In the VC problem, these sets will be the set of vertices on an edge, 
+I think.)
 
 There is a simple $\ln |S|$ approximation algorithm for set cover (in
 fact, the approximation ratio is $\ln \max|A_i| \leq \ln |S|$).
@@ -5345,12 +5346,242 @@ For a set $A_i$, we look at the
 $
 w_i / N
 $, with $N$ the number of newly covered elements (that is, the number of
-elements in $A_i$ that we didn't already have in our working set cover.
+elements in $A_i$ that we didn't already have in our working set cover).
+Formally,
+$$
+N = \left|
+	A_i \setminus \bigcup_j A_j
+\right|
+$$
+with $j$ ranging over the sets we've already chosen.
 Intuitively, this is the cost per item newly covered.
 We thus pick a set $A_i$ minimizing this ratio.
 
 It's pretty clear that this runs in polynomial time---the total number of
 iterations is at most the number of sets we have.
+
+We now argue our error is logarithmic. Suppose we have all $w_i$'s = 1.
+Intuitively, suppose we have $A_1$ and $A_2$ each covering eactly half
+the points; suppose we have an $A_3$ covering slightly more than half;
+the optimal solution takes just $A_1$ and $A_2$; the greedy one takes
+$A_3$. Suppose there's now an $A_4$ containing slightly more than the size
+of $A_1 \setminus A_3$ or $A_2 \setminus A_3$; the greedy algorithm will
+select $A_4$. We can do this at most a logarithmic number of times (since
+the size of the $A_4, A_5, \ldots$ sets must half at each iteration of this).
+So even if the weights are all 1, we can be off by a logarithmic factor.
+
+We now give a slightly more general and formal proof that regardless of the
+weights, we won't be off by more than a log factor (that is, we give an upper
+bound on the error).
+We use a charging scheme.
+When we select $A_e$ with ratio $R$, we charge $\$R$ to each newly
+covered element.
+At any point, the total amount of money at the elements will be the sum of
+the $w_i$'s added.
+In particular, at the end, the total amount of money at the elements will
+be just the weight of the set cover.
+
+The key \textbf{lemma} here will be: for any $i$, the total charge to the 
+elements of
+$A_i$ is $O(w_i \log|A_i|)$.
+Note $A_i$ isn't necessarily a set in our chosen set cover; the claim holds
+instead for all the sets $A_i$.
+To see this, fix $i$ arbitrarily.
+We reason about how much money can be in $A_i$.
+First, at the start of the algorithm, none of the elements have the money.
+Now, note that once an element receives money, it never receives money.
+So each element of $A_i$ will have money placed on it at most once.
+That is, at each step of the iteration, zero or more of the elements in 
+$A_i$ will have money added to them, from some set $A_j$ being added
+to the set cover.
+
+Now, the first item of $A_i$ covered cannot be charged more than
+$$
+\frac{w_i}{|A_i|}.
+$$
+Thinking about the computation of the ratio $R$ when the first element
+was added, one of the sets considered for adding was $A_i$; the ratio for
+the set $A_i$ at the beginning is $w_i / |A_i|$; if we chose set $A_i$, then
+the bound is tight. If, on the other hand, we chose a different set, then
+the ratio is smaller than that, giving us our inequality.
+
+Consider now the second item covered in $A_i$. It could be the case that in the
+first round, some item is covered. Then the ratio of $A_i$ in the round
+where the next elem from $A_i$ is covered is
+$$
+\frac{w_i}{|A_i| - 1}.
+$$
+This is an upper bound, by similar reasoning to above: it could be that there
+is some set with a better ratio that's actuall chosen.
+
+In general, the $j$th item that's chosen has cost
+$$
+\leq \frac{w_i}  {|A_i| - (j - 1)}
+$$
+(with the bound tight in the worst case, which happens when one element of
+$A_i$ is covered each round).
+
+So the total charge on $A_i$ is less than
+$$
+w_i\sum_{1 \leq j \leq |A_i|} \frac{1}{j}
+\approx
+w_i \ln |A_i|
+$$
+since the harmonic series is approximately the natural log.
+
+We now argue that the approximation isn't even logarithmic in the size
+of $S$, but instead logarithmic in the max cardinality of the $A_i$'s.
+Now, let $A_{i1}, \ldots, A_{i\ell}$ be an min-weight set cover;
+the total cost is
+$$
+W = \sum_{1\leq j \leq \ell} w_{ij}.
+$$
+Now, optimal weight for $A_{i1}$ is $\leq w_i \log|A_i|$.
+Similarly, for $A_{i2}$, the total cost is
+$\leq A_{1\leq j \leq \ell}$ (total charge on $A_{ij}$).
+Note this is an overestimate in general: only in the case where
+$A_{i1}$ and $A_{i2}$ are disjoint do we get an equality here.
+Note the total charge on $A_{ij}$ is
+$$
+\sum_{1\leq j \leq \ell} w_{ij} O(\log |A_{ij}|).
+$$
+Let $m = \max_i |A_i|$; so we have $m\leq |S|$.
+we then have the total charge on $A_{ij}$ being
+$$
+O(\log m) \cdot \sum_{1\leq j \leq \ell} w_{ij}.
+$$
+The sum to the right is exactly $W$; so we have our error is
+logarithmic in $m$.
+
+An important inapproximability result:
+there is no poly-time $o(\log n)$-factor approximate algorithm for
+unweighted set cover unless $P=NP$.
+So to show $P=NP$, you don't need to exactly solve set-cover; all you need
+to do is give a sublogarithmic approximation.
+So the simple greedy algorithm presented is quite literally the best we
+could hope for.
+
+
+
+
+\subsection{Some Depressing Results about Boneheaded Randomized Approximation Algorithms}
+
+Consider max cut: we have a graph $G=(V,E)$. We want to color vertices either
+red or blue so that we have as many edges as possible going from the red
+side to the blue side.
+This algorithm is NP-hard.
+
+A natural randomized algorithm is to pick colors at random.
+Let $X$ be the number of bicolored edges.
+For each $e\in E$, define $X_e$ to be the indicator variable equal to
+1 if edge $e$ is bicolored; 0 otherwise.
+Since $X=\sum_e X_e$, linearity of expectation tells us
+$$
+E[X] =
+\sum_e E[X_e].
+$$
+Recall that linearity of expectation always holds; the RVs above are
+not independent of each other: consider a triangle with three edges
+$a,b,c$; there's no way that all three can be bicolored.
+The dependencies/correlations are tough to pin down, but we still get
+linearity.
+Since $E[X_e] = 1/2$, then we have $E[X] = |E| / 2$.
+
+Now, it is known that max cut cannot be approximated to better than
+$17/16$ unless P=NP (WTF?).
+There is an upper bound of something like $1.13$ based on semidefinite
+programming.
+
+Consider the MAX 3SAT formula. We're given a 3CNF formula; our goal is to
+find a truth assignment that satisfies as many clauses as possible.
+A natural random algorithm: flip a coin for each variable (set variables
+independently and uniformly at random).
+Recall that, in our 3-clauses, we require that the variables mentioned
+in the 3 literals all be disjoint.
+So an individual clause is satisfied with probability $7/8$.
+
+Let $X$ be the number of clauses satisfied; for clause $i$ define an 
+indicator variable $X_i$ which is 1 if clause $i$ is satisfied and
+$0$ otherwise.
+By linearity of expectation, we get
+$$
+E[X] = \frac{7}{8} C
+$$
+with $C$ the number of clauses.
+So this algorithm, in expectation, gets you within $8/7$ of the clauses.
+The hardness result here matches that: if you could get an algorithm that
+comes within $8/7 - \varepsilon$ for some $\varepsilon > 0$, then P=NP.
+Daaaaamn, son.
+
+
+
+
+\section{A Sketch of the Cook-Levin Theorem}
+
+The nice, formal version of this proof uses Turing machines.
+This sketch instead follows CLRS in giving a less formal outline, following
+the contours of the proof and ignoring bookkeeping matters.
+
+We show that any language can be reduced to CIRCUIT-SAT, rather than the
+perhaps more traditional version that any language can be reduced to 3SAT.
+
+How do we show a problem is NP-complete? Recall, 
+$L$ is NPC iff (1) $L\in $ NP; and (2) $\forall L'\in NP.\,\, L'\leq_P L$.
+(1) is quite easy (recall we just need to show that a problem solution is
+verifiable in polynomial time). (2) is where all the difficulty is.
+
+Fix some arbitrary $L$ in NP; we must argue that $L \leq_P$ CIRCUIT-SAT.
+The only thing we know about $L$ is that it's in NP. Now, $L\in$ NP
+iff there is a polytime ``verifier'' algorithm $A(x,y)$ such that 
+(1) 
+$$
+\forall x\in L.\,\, \exists y.\,\,
+|y| = O(|x|^c)
+$$
+($c$ is some absolute constant) with $A(x,y) = 1$; and (2)
+$$
+\forall x\not\in L.\,\,
+\forall y.\,\,
+A(x,y) = 0.
+$$
+
+The key idea here will be that we can simulate any polymonial-time computation
+via a polynomial-sized circuit.
+That is, we need a polynomial-time $f$ mapping any string $x$ to
+a circuit $f(x)$ such that $x\in L$ iff $f(x)\in$ CIRCUIT-SAT.
+
+We don't think about Turing machines, but instead in the abstract RAM model
+of serial computation we know and love.
+We have memory, we have registers, control logic, and so on; in other
+words, we have bits of state.
+At every clock tick, the state gets updated by passing through some sets of
+combinational circuits---two registers may be added together, for example,
+depending on the value of certain control bits.
+In other words, each clock tick takes the memory vector and outputs a new
+memory vector.
+Abstractly, we think of our machine as a large combinational circuit that,
+every clock tick, takes the output of itself and feeds it into the next
+step.
+
+In other words, if we run the machine for $k$ steps, and we want to transform
+the input to the output after $k$ steps, we imagine just copying the hardware
+$k$ times and wiring it together.
+If our computation runs for a polynomial number of steps, we're not
+blowing up the normal size of the combinational circuit by more than a
+polytime factor.
+
+In particular, we have to examine what happens to the verifier on a 
+specific given $x$.
+The verifier algorithm takes inputs $x$ and $y$; when it terminates, there
+is some particular position in memory to which the output is written.
+$x$ is a fixed sequence of 0s and 1s given to us; we treat the $y$ inputs,
+however, as variables.
+For simplicity, imagine all the other memory locations are zeroed out.
+
+We do the thing where we replicate the combinational circuit implementing
+$A$ a bunch of times; we can prune away the circuit to a minimal one
+that only has $y$ as an input (that is, propagate the info from $x$ upwards);
+we can trim away all gates that don't enter into the output bit too.
 
 
 
