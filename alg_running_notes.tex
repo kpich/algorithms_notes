@@ -3231,14 +3231,15 @@ By following this logic all the way along to $t$, we will have routed
 A path of this sort is called an \textbf{augmenting path}.
 
 An algorithm emerges from this: start with an all-zeroes flow; repeatedly
-construct the network, using a DFS to check the existence of an $(s,t)$ path, 
+construct the residual network, using a DFS to check the existence of an 
+$(s,t)$ path, 
 and repeat.
 This is the \textbf{Ford-Fulkerson algorithm}.
 
 Suppose no $s-t$ path exists in $G_f$.
 Let $S$ be the set of nodes reachable from $s$ in $G_f$, and let 
 $T = V\setminus S$.
-Let's return to the other half ot ehe max-flow min-cut theorem that we haven't
+Let's return to the other half of the max-flow min-cut theorem that we haven't
 showed yet.
 We cannot get from anything in $S$ to anything in $T$; for every $u\in S$
 and $v\in T$, the residual capacity is $0$; if it were otherwise, then the
@@ -3630,7 +3631,7 @@ crucially, the property that if $c_f(u,v) > 0$, then $h(u) \leq h(v) + 1$.
 We call a valid $(h,f)$ a ``configuration''.
 
 Define an \textbf{admissible edge} $(u,v)$ to be one with
-$c_f(u,v) > 0$ (ther eis residual capacity), and $h(u) = h(v) + 1$.
+$c_f(u,v) > 0$ (there is residual capacity), and $h(u) = h(v) + 1$.
 Note that if $u$ is overflowing and $(u, v)$ is admissible, then
 push($u,v$) can be applied.
 
@@ -3642,7 +3643,7 @@ $(v,u)$ along which we can remove flow.)
 
 We have the \textbf{lemma} that the admissible network is a DAG---this is
 pretty straightforward to see, since each edge $(u,v)$ must see one step
-decrease in $h$, and when we get back to the beginning, we have a 
+decrease in $h$; if we follow a cycle back to the beginning, we have a 
 contradiction.
 
 We have the \textbf{lemma} that if $(u,v)$ is admissible and $u$
@@ -3798,7 +3799,8 @@ initially) by ``flipping'' edges (matching to unmatched; vice versa)
 along an alternating path (which alternates matched/unmatched edge)
 from an unmatched left vertex to a matched right matching.
 
-That is, an alternating path alternates between $U$ and $V$, and it 
+An augmenting path alternates between $U$ and $V$, starting in $U$ and
+ending in $V$, and it 
 alternates between matched/unmatched vertices.
 Suppose a path starts and ends with an unmatched vertex. Supposing
 it starts in $U$ and ends in $V$, then flipping this path will
@@ -4234,7 +4236,7 @@ feasible region.
 We then consider the family of lines fo the form $3x_1 + 2x_2 = c$, and we
 ask what the highest value of $c$ is of such a line intersecting the feasible 
 region.
-Thsi value will be 28.
+This value will be 28.
 
 There is, of course, the simplex method.
 Intuitively, it works as follows: we know that an optimal solution will occur
@@ -4252,10 +4254,10 @@ for the simplex method. In other words, these pathological cases are not
 robust to noise---perturbing them slightly  makes simplex work fine.
 
 Note there are methods dating back to the 70s for solving arbitrary LP 
-instances in polynomial time (e.g. ellipsoid algorithm, interior
+instances in polynomial time (e.g.\ ellipsoid algorithm, interior
 point methods).
-Note that linear programming is a nice, powerful tool for showing problems
-to be polynomial-time solvable (e.g. multicommodity flow, where we have 
+Linear programming is a nice, powerful tool for showing problems
+to be polynomial-time solvable (e.g.\ multicommodity flow, where we have 
 various commodities flowing in our network, rather than just a single
 commodity).
 
@@ -4275,17 +4277,17 @@ infeasible (when the feasible region is empty)
 feasible (bounded)---the function is bounded
 
 \item
-feasible (unbounded). COnsider, e.g. $\max x_1$ s.t. $x_1 \geq 0$.
+feasible (unbounded). Consider, e.g., $\max x_1$ s.t. $x_1 \geq 0$.
 
 \end{enumerate}
 
 
 
 Note the \textbf{dual} LP problem is as follows.
-Suppose the primal is $\max c^Tx$ s.t. $Ax \leq b, x\geq b$.
+Suppose the primal is $\max c^Tx$ s.t. $Ax \leq b, x\geq 0$.
 Then our primal has $n$ constraints.
 
-The dual is $\min y^T b$ s.t. $A^Ty \geq c, y \geq 0$.
+The dual is $\min y^T b$ s.t.\ $A^Ty \geq c, y \geq 0$.
 It's easy to show that the dual of the dual is the primal.
 
 We have the a result called \textbf{Weak Duality}:
@@ -4309,7 +4311,7 @@ This implies, first, that if the primal is unbounded, then the dual is
 infeasible.
 Second, we have that if $x$ is feasible for the primal, $y$ is feasible
 for the dual, and $c^Tx = y^Tb$, then we have that $x$ is optimal
-for the primal and $y$ is primal for the dual.
+for the primal and $y$ is optimal for the dual.
 
 \subsection{Example}
 We continue the initial example given in the previous subsection.
@@ -4470,12 +4472,13 @@ that is either infeasible, or feasible but not optimal.
 
 In fact, even 0-1 ILP is hard (that is, ILP but where we're restricted to
 the numbers 0 and 1). Intuitively, we wouldn't expect rounding to work at
-all here. Further, it's actually somewhat easy to write a knapsack instance
-as a 0-1 ILP.
+all here. 
 
+It's actually somewhat easy to write a knapsack instance
+as a 0-1 ILP.
 The knapsack problem, recall is as follows. Item $i$ has value $v_i$ and
 weight $w_i$. The Knapsack has a capacity $W$.
-To formulate this as a 0-1 ILP, we define variables $x_i$, which takes
+To formulate this as a 0-1 ILP, we define variables $x_i$, which take
 value $1$ if we take item $i$, and $0$ otherwise.
 We solve
 \begin{align}
@@ -4557,7 +4560,7 @@ and certainly we don't know if $coNP = NP$.
 
 As an example, we have that $SAT \in NP$.
 Supposing we have a boolean formula $x$ using the connectives 
-$\wedge, \vee, \not$.
+$\wedge, \vee, \neg$.
 We have that $SAT\in NP$, pretty easily: all we need to do is exhibit
 a poly-time verifier algorithm $A$ that satisfies the definition given in the 
 previous section.
@@ -4674,7 +4677,7 @@ hard problem.
 CLRS proves that, for any $L\in NP$, $L$ is polynomial-time reducible to 
 circuit-SAT.
 The circuit-SAT problem is as fast: suppose we're given some boolean circuit,
-with no feedback/cycles. It has $\wedge,\vee,\not$ gates, for example, and
+with no feedback/cycles. It has $\wedge,\vee,\neg$ gates, for example, and
 has a single output wire.
 The problem is as follows: given a circuit, is there some input to the
 input wires that makes the output wire true.
@@ -4746,7 +4749,7 @@ is NP-complete, which is shown in the text).
 
 \subsubsection{3-SAT is NP-Complete}
 
-3-SAT is SAT, but we require the formulas to be in 3-CNF.
+3-SAT is just like SAT, but we require the formulas to be in 3-CNF.
 A 3-CNF formula is of the form
 $$
 \bigwedge_i C_i
@@ -4999,8 +5002,8 @@ Finally, we'll traverse from $s_k$ to all of $u_k$'s nodes, and will eventually
 leave $u_k$'s superterminal, ending up back at $s_1$.
 
 On the other hand, suppose that $G'\in$ HC, for a $G'$ constructed in the
-method above; we'll show this implies that the original graph $G$ has a 
-vertex ocver of size $k$.
+method above; we'll argue this implies that the original graph $G$ has a 
+vertex cover of size $k$.
 Fix a Hamiltonial cycle of $G'$.
 It must have two edges incident on $s_1$, as with every other vertex.
 Pick one of the outgoing edges. It can only go to one of the superterminals,
@@ -5128,7 +5131,7 @@ In other words, they give conditions for tightness of bounds.
 
 Now, we'll initially set $x=0, y=0$. If we keep $x$ integral, we'll not
 be able to maintain optimality, because by complementary slackness (somehow,
-I got distracted), this will mean we've solved the ILP rpoblem exactly,
+I got distracted), this will mean we've solved the ILP problem exactly,
 and that's NP-complete.
 
 So we'll iteratively update $x$ and $y$, while maintaining
@@ -5207,7 +5210,7 @@ twice the optimum of the primal solution with integrality constraints.
 So we've approximated, to within a constant factor of 2, the weighted
 vertex cover problem, and we've done so in polynomial time.
 Can we do better? 
-No.
+Kind of.
 There is some $c > 1$ (1.36 or something) such that the problem cannot
 be approximated better than $c$ unless $P=NP$.
 So coming up with a problem that makes an error of at most 10\% on any input
@@ -5291,7 +5294,7 @@ to figure out why.
 
 So each $v_i$ is mapped to a $j\Delta$ for some $j\in \{0,\ldots, n/\varepsilon
 \}$.
-Any subset of items then have value $j\Delta$ for some $0\leq j \leq n^2 / 
+Any subset of items then has value $j\Delta$ for some $0\leq j \leq n^2 / 
 \varepsilon$.
 This thus gives us that knapsack is a FPTAS, somehow.
 
@@ -5367,7 +5370,7 @@ the optimal solution takes just $A_1$ and $A_2$; the greedy one takes
 $A_3$. Suppose there's now an $A_4$ containing slightly more than the size
 of $A_1 \setminus A_3$ or $A_2 \setminus A_3$; the greedy algorithm will
 select $A_4$. We can do this at most a logarithmic number of times (since
-the size of the $A_4, A_5, \ldots$ sets must half at each iteration of this).
+the size of the $A_4, A_5, \ldots$ sets must halve at each iteration).
 So even if the weights are all 1, we can be off by a logarithmic factor.
 
 We now give a slightly more general and formal proof that regardless of the
@@ -5466,7 +5469,8 @@ could hope for.
 
 \subsection{Some Depressing Results about Boneheaded Randomized Approximation Algorithms}
 
-Consider max cut: we have a graph $G=(V,E)$. We want to color vertices either
+Consider \textbf{max cut}: we have a graph $G=(V,E)$. We want to color vertices 
+either
 red or blue so that we have as many edges as possible going from the red
 side to the blue side.
 This algorithm is NP-hard.
